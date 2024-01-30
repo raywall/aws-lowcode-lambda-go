@@ -1,0 +1,21 @@
+{
+    "tableName": "users",
+    "keys": {
+        "email": {
+            "operator": "="
+        },
+        "status": {
+            "operator": "="
+        },
+        "projectionCols": [
+            "email",
+            "username",
+            "age"
+        ],
+        "filter": "#age > :age",
+        "filterValues": {
+            "age": "S"
+        },
+        "dataStruct": "[{\"username\": \"\", \"age\": \"\"}]"
+    }
+}

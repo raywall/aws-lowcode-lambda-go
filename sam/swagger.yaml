@@ -1,0 +1,15 @@
+openapi: 3.0.1
+info:
+  title: SAM Local API Gateway
+  version: 1.0.0
+
+paths:
+  /{proxy+}:
+    x-amazon-apigateway-any-method:
+      x-amazon-apigateway-integration:
+        # uri: !Sub 'http://${YourApi}.execute-api.${AWS::Region}.amazonaws.com/prod/your_function_route'
+        uri: !Sub http://127.0.0.1:3000/lowcode-function/invocations
+        passthroughBehavior: when_no_match
+        httpMethod: POST
+        type: aws_proxy
+          
