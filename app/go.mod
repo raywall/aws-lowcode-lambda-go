@@ -1,4 +1,4 @@
-module lowcode-lambda
+module github.com/raywall/aws-lowcode-lambda-go
 
 go 1.21.5
 

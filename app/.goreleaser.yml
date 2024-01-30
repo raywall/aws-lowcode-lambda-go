@@ -1,4 +1,4 @@
-project_name: lowcode-lambda-go
+project_name: aws-lowcode-lambda-go
 release:
   github:
     owner: raywall
