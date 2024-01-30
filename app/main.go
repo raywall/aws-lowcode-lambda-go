@@ -10,7 +10,10 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-var err error
+var (
+	err     error
+	version string = "beta"
+)
 
 func init() {
 	rules.FilePath(os.Getenv("FILENAME")).Load(handlers.InputData)
@@ -22,5 +25,6 @@ func init() {
 }
 
 func main() {
+	// fmt.Printf("Versão: %s\n", version)
 	lambda.Start(handlers.HandleLambdaEvent)
 }

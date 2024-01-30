@@ -1,1 +1,3 @@
 .aws-sam/
+app/go.*
+app/main
