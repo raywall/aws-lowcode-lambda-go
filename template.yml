@@ -26,9 +26,9 @@ Resources:
       Timeout: 300
       Environment:
         Variables:
-          REGION: us-east-1
-          ENDPOINT: http://dynamodb:8000
-
+          DYNAMO_ENDPOINT: http://dynamodb:8000
+          CONFIG_SAMPLE: sample.yaml
+          AWS_REGION: us-east-1
       Events:
         ProxyEndpoint:
           Type: Api
