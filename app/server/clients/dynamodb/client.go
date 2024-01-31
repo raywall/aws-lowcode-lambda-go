@@ -35,6 +35,10 @@ func NewDynamoDBClient() (*DynamoDBClient, error) {
 	}, nil
 }
 
+func (c *DynamoDBClient) WithConfig(configuration *config.Config) error {
+	return configuration.Set()
+}
+
 func (c *DynamoDBClient) HandleRequest(data *map[string]interface{}) (events.APIGatewayProxyResponse, error) {
 	if !conf.IsMethodAllowed() {
 		return events.APIGatewayProxyResponse{
