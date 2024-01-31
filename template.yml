@@ -15,7 +15,7 @@ Resources:
   LowcodeFunction:
     Type: "AWS::Serverless::Function"
     Properties:
-      CodeUri: app/.
+      CodeUri: /.
       Handler: main
       Description: A serverless locode function integrated with a local DynamoDB
       FunctionName: lowcode-function
