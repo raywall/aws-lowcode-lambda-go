@@ -8,4 +8,7 @@ require (
 	gopkg.in/yaml.v2 v2.2.8
 )
 
-require github.com/jmespath/go-jmespath v0.4.0 // indirect
+require (
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/satori/go.uuid v1.2.0 // indirect
+)

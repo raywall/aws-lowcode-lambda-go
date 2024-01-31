@@ -19,7 +19,7 @@ type DynamoDBClient struct {
 }
 
 // NewDynamoDBClient cria uma nova instancia do cliente do DynamoDB
-func NewDynamoDBClient() (*DynamoDBClient, error) {
+func NewDynamoDBClient(configuration ...*config.Config) (*DynamoDBClient, error) {
 	config := aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))}
 
 	if endpoint, present := os.LookupEnv("DYNAMO_ENDPOINT"); present {
@@ -28,11 +28,21 @@ func NewDynamoDBClient() (*DynamoDBClient, error) {
 
 	sess, err := session.NewSession(&config)
 	if err != nil {
-		return &DynamoDBClient{}, fmt.Errorf("erro ao iniciar sessão aws: %v", err)
+		return nil, fmt.Errorf("failed to start an aws session: %v", err)
 	}
-	return &DynamoDBClient{
+
+	client := &DynamoDBClient{
 		svc: dynamo.New(sess),
-	}, nil
+	}
+
+	if len(configuration) > 0 {
+		err = client.WithConfig(configuration[0])
+		if err != nil {
+			return nil, fmt.Errorf("failed to load configuration: %v", err)
+		}
+	}
+
+	return client, nil
 }
 
 func (c *DynamoDBClient) WithConfig(configuration *config.Config) error {
