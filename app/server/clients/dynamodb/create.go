@@ -9,16 +9,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-func (c *DynamoDBClient) create(input *RequestInput, data *map[string]interface{}) (events.APIGatewayProxyResponse, error) {
+func (c *DynamoDBClient) create(data *map[string]interface{}) (events.APIGatewayProxyResponse, error) {
 	item, err := dynamodbattribute.MarshalMap(*data)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: 500,
-		}, err
+		}, fmt.Errorf("failed marshal map body information")
 	}
 
 	putInput := &dynamo.PutItemInput{
-		TableName: aws.String(input.TableName),
+		TableName: aws.String(conf.Database.TableName),
 		Item:      item,
 	}
 

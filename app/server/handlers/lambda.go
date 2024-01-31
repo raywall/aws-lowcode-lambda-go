@@ -4,7 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"lowcode-lambda/clients/dynamodb"
+
+	"github.com/raywall/aws-lowcode-lambda-go/server/clients/dynamodb"
 
 	"github.com/aws/aws-lambda-go/events"
 )

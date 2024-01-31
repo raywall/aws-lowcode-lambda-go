@@ -4,10 +4,11 @@ import (
 	"embed"
 	"fmt"
 	"log"
-	"lowcode-lambda/clients/dynamodb"
-	"lowcode-lambda/clients/roles"
-	"lowcode-lambda/handlers"
 	"os"
+
+	"github.com/raywall/aws-lowcode-lambda-go/server/clients/dynamodb"
+	"github.com/raywall/aws-lowcode-lambda-go/server/clients/roles"
+	"github.com/raywall/aws-lowcode-lambda-go/server/handlers"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )

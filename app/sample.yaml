@@ -1,0 +1,26 @@
+TemplateFormatVersion: 2024-01-31
+Description: config sample of lowcode-lambda with go
+
+Resources:
+  Request:
+    AllowedMethods:
+    - GET
+    - POST
+
+  Database:
+    TableName: users
+    Keys:
+    - email:
+        operator: "="
+    - status:
+        operator: "="
+    Filter: "#age > :age"
+    FilterValues:
+    - age: S
+    ProjectionCols:
+    - email
+    - username
+    - age
+  
+  Response:
+    DataStruct: '[{"username": "", "age": ""}]'

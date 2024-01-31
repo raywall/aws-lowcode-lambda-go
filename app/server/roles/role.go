@@ -3,7 +3,8 @@ package roles
 import (
 	"encoding/json"
 	"fmt"
-	"lowcode-lambda/clients/dynamodb"
+
+	"github.com/raywall/aws-lowcode-lambda-go/server/clients/dynamodb"
 )
 
 type RoleData []byte
