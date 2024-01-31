@@ -18,7 +18,7 @@ func (c *DynamoDBClient) create(data *map[string]interface{}) (events.APIGateway
 	}
 
 	putInput := &dynamo.PutItemInput{
-		TableName: aws.String(conf.Database.TableName),
+		TableName: aws.String(conf.Resources.Database.TableName),
 		Item:      item,
 	}
 

@@ -6,17 +6,18 @@ Resources:
     AllowedMethods:
     - GET
     - POST
+    - PUT
 
   Database:
     TableName: users
     Keys:
-    - email:
-        operator: "="
-    - status:
-        operator: "="
+      email:
+        Operator: "="
+      order:
+        Operator: "="
     Filter: "#age > :age"
     FilterValues:
-    - age: S
+      age: "5"
     ProjectionCols:
     - email
     - username

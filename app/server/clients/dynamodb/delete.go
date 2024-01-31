@@ -17,7 +17,7 @@ func (c *DynamoDBClient) delete() (events.APIGatewayProxyResponse, error) {
 	}
 
 	deleteInput := dynamo.DeleteItemInput{
-		TableName: aws.String(conf.Database.TableName),
+		TableName: aws.String(conf.Resources.Database.TableName),
 		Key:       keys.PrimaryKeys,
 	}
 

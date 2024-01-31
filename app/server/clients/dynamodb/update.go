@@ -2,23 +2,23 @@ package dynamodb
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	dynamo "github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 func (c *DynamoDBClient) update(data *map[string]interface{}) (events.APIGatewayProxyResponse, error) {
-	key, err := conf.KeyCondition()
+	keys, err := conf.KeyCondition()
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: 500,
 		}, fmt.Errorf("failed load key conditions config: %v", err)
 	}
 
-	updateInput := &dynamodb.UpdateItemInput{
-		TableName:                 aws.String(conf.Database.TableName),
+	updateInput := &dynamo.UpdateItemInput{
+		TableName:                 aws.String(conf.Resources.Database.TableName),
 		Key:                       keys.PrimaryKeys,
 		ExpressionAttributeNames:  map[string]*string{},
 		ExpressionAttributeValues: map[string]*dynamo.AttributeValue{},
@@ -26,13 +26,13 @@ func (c *DynamoDBClient) update(data *map[string]interface{}) (events.APIGateway
 
 	updateMode := "SET"
 
-	if mode, exist := conf.Request.Parameters["mode"]; exist {
+	if mode, exist := conf.Resources.Request.Parameters["mode"]; exist {
 		updateMode = mode
 	}
 
 	updateExpression := []string{}
 	for key, value := range *data {
-		if _, ok := conf.Database.Keys[key]; !ok {
+		if _, ok := conf.Resources.Database.Keys[key]; !ok {
 			updateExpression = append(updateExpression, fmt.Sprintf("#%s = :%s", key, key))
 
 			updateInput.ExpressionAttributeNames[fmt.Sprintf("#%s", key)] = aws.String(key)

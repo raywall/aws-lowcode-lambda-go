@@ -2,17 +2,20 @@ package config
 
 import (
 	"errors"
+	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws"
 	dynamo "github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"gopkg.in/yaml.v2"
 )
 
-var Global *Config
+var Global = Config{}
 
 type (
 	Config struct {
 		TemplateFormatVersion string    `yaml:"TemplateFormatVersion,omitempty"`
-		Description           string    `yaml:"Description,omitemtpy"`
+		Description           string    `yaml:"Description,omitempty"`
 		Resources             Resources `yaml:"Resources"`
 	}
 
@@ -45,15 +48,15 @@ type (
 	Request struct {
 		AllowedMethods []string          `yaml:"AllowedMethods"`
 		HTTPMethod     string            `yaml:"HttpMethod,omitempty"`
-		Parameters     map[string]string `yaml:"parameters,omitempty"`
+		Parameters     map[string]string `yaml:"Parameters,omitempty"`
 	}
 
 	Response struct {
-		DataStruct string `json:"DataStruct,omitempty"`
+		DataStruct string `yaml:"DataStruct,omitempty"`
 	}
 )
 
-func (config *Config) GetConfig(data []byte) error {
+func (config *Config) Load(data []byte) error {
 	err := yaml.Unmarshal(data, config)
 	if err != nil {
 		return err
@@ -62,9 +65,9 @@ func (config *Config) GetConfig(data []byte) error {
 	return nil
 }
 
-func (config *Config) SetConfig() error {
+func (config *Config) Set() error {
 	if config != nil {
-		Global = config
+		Global = *config
 		return nil
 	}
 
@@ -76,10 +79,10 @@ func (config *Config) KeyCondition() (*KeyCondition, error) {
 		condition string
 		names     = map[string]*string{}
 		values    = map[string]*dynamo.AttributeValue{}
-		keys      = map[string]string
+		keys      = map[string]string{}
 	)
 
-	for key, value := range config.Keys {
+	for key, value := range config.Resources.Database.Keys {
 		if condition != "" {
 			condition += " AND "
 		}
@@ -91,7 +94,7 @@ func (config *Config) KeyCondition() (*KeyCondition, error) {
 			S: aws.String(value.Data),
 		}
 
-		if _, ok := config.Keys[key]; ok {
+		if _, ok := config.Resources.Database.Keys[key]; ok {
 			keys[key] = value.Data
 		}
 	}
@@ -107,4 +110,14 @@ func (config *Config) KeyCondition() (*KeyCondition, error) {
 		Condition:                 condition,
 		PrimaryKeys:               primaryKeys,
 	}, nil
+}
+
+func (config *Config) IsMethodAllowed() bool {
+	for _, item := range config.Resources.Request.AllowedMethods {
+		if item == config.Resources.Request.HTTPMethod {
+			return true
+		}
+	}
+
+	return false
 }

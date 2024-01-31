@@ -6,33 +6,37 @@ import (
 	"log"
 	"os"
 
+	"github.com/raywall/aws-lowcode-lambda-go/config"
 	"github.com/raywall/aws-lowcode-lambda-go/server/clients/dynamodb"
-	"github.com/raywall/aws-lowcode-lambda-go/server/clients/roles"
 	"github.com/raywall/aws-lowcode-lambda-go/server/handlers"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
+//go:embed sample.*
+var fs embed.FS
 var version string = "beta"
 
 func init() {
-	//go:embed sample.json
-	var fs embed.FS
+	conf := &config.Global
 
-	roleData, err := fs.ReadFile(os.Getenv("FILENAME"))
+	data, err := fs.ReadFile(os.Getenv("CONFIG_SAMPLE"))
 	if err != nil {
-		return fmt.Errorf("failed to read lowcode role file: %v", err)
+		log.Fatalf("failed to read lowcode role file: %v", err)
 	}
 
-	roles.RoleData(roleData).Load(handlers.InputData)
+	err = conf.Load(data)
+	if err != nil {
+		log.Fatalf("failed to load settings: %v", err)
+	}
 
-	handlers.Client, err := dynamodb.NewDynamoDBClient()
+	handlers.Client, err = dynamodb.NewDynamoDBClient()
 	if err != nil {
 		log.Fatalf("failed to start a dynamodb client: %v", err)
 	}
 }
 
 func main() {
-	// fmt.Printf("Versão: %s\n", version)
+	fmt.Printf("Versão: %s\n", version)
 	lambda.Start(handlers.HandleLambdaEvent)
 }

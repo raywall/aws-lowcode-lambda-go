@@ -9,9 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	dynamo "github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/raywall/aws-lowcode-lambda-go/config"
 )
 
-var conf = Config.Global
+var conf = &config.Global
 
 type DynamoDBClient struct {
 	svc dynamodbiface.DynamoDBAPI
@@ -21,7 +22,7 @@ type DynamoDBClient struct {
 func NewDynamoDBClient() (*DynamoDBClient, error) {
 	config := aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))}
 
-	if endpoint, present := os.LookupEnv("ENDPOINT"); present {
+	if endpoint, present := os.LookupEnv("DYNAMO_ENDPOINT"); present {
 		config.Endpoint = aws.String(endpoint)
 	}
 
@@ -35,13 +36,14 @@ func NewDynamoDBClient() (*DynamoDBClient, error) {
 }
 
 func (c *DynamoDBClient) HandleRequest(data *map[string]interface{}) (events.APIGatewayProxyResponse, error) {
-	if !conf.allowed {
+	if !conf.IsMethodAllowed() {
 		return events.APIGatewayProxyResponse{
-			StatusCode: 400,
-		}, fmt.Errorf("method not supported: %s", conf.HTTPMethod)
+			StatusCode: 401,
+			Body:       fmt.Sprintf("%s method is not allowed", conf.Resources.Request.HTTPMethod),
+		}, nil
 	}
 
-	switch conf.HTTPMethod {
+	switch conf.Resources.Request.HTTPMethod {
 	case "GET":
 		return c.query()
 	case "POST":
@@ -49,20 +51,11 @@ func (c *DynamoDBClient) HandleRequest(data *map[string]interface{}) (events.API
 	case "PUT":
 		return c.update(data)
 	case "DELETE":
-		return c.delete(data)
+		return c.delete()
 	default:
 		return events.APIGatewayProxyResponse{
 			StatusCode: 400,
-		}, fmt.Errorf("method not supported: %s", HTTPMethod)
+			Body:       fmt.Sprintf("%s method is not supported", conf.Resources.Request.HTTPMethod),
+		}, nil
 	}
-}
-
-func (config *Config) allowed(target string) bool {
-	for _, item := range config.AllowedMethods {
-		if item == target {
-			return true
-		}
-	}
-
-	return false
 }

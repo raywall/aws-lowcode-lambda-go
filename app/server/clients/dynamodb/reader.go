@@ -12,15 +12,15 @@ import (
 
 // query realiza uma consulta no DynamoDB com base no input
 func (c *DynamoDBClient) query() (events.APIGatewayProxyResponse, error) {
-	var queryInput = &dynamodb.QueryInput{
-		TableName:                 aws.String(input.TableName),
+	var queryInput = &dynamo.QueryInput{
+		TableName:                 aws.String(conf.Resources.Database.TableName),
 		ExpressionAttributeNames:  map[string]*string{},
 		ExpressionAttributeValues: map[string]*dynamo.AttributeValue{},
 	}
 
 	keyCondition, err := conf.KeyCondition()
 	if err != nil {
-		return event.APIGatewayProxyResponse{
+		return events.APIGatewayProxyResponse{
 			StatusCode: 500,
 		}, fmt.Errorf("failed to load key conditions: %v", err)
 	}
@@ -30,10 +30,10 @@ func (c *DynamoDBClient) query() (events.APIGatewayProxyResponse, error) {
 	queryInput.ExpressionAttributeValues = keyCondition.ExpressionAttributeValues
 
 	// get list of specific cols
-	if len(conf.Database.ProjectionCols) > 0 {
+	if len(conf.Resources.Database.ProjectionCols) > 0 {
 		projectionCols := ""
 
-		for i, col := range conf.Database.ProjectionCols {
+		for i, col := range conf.Resources.Database.ProjectionCols {
 			if i > 0 {
 				projectionCols += ","
 			}
@@ -42,14 +42,14 @@ func (c *DynamoDBClient) query() (events.APIGatewayProxyResponse, error) {
 			queryInput.ExpressionAttributeNames[fmt.Sprintf("#%s", col)] = aws.String(col)
 		}
 
-		queryInput.ProjectionCols = aws.String(projectionCols)
+		queryInput.ProjectionExpression = aws.String(projectionCols)
 	}
 
 	// add validation rules
-	if conf.Database.Filter != "" {
-		queryInput.FilterExpression = aws.String(conf.Database.Filter)
+	if conf.Resources.Database.Filter != "" {
+		queryInput.FilterExpression = aws.String(conf.Resources.Database.Filter)
 
-		for key, value := range conf.Database.FilterValues {
+		for key, value := range conf.Resources.Database.FilterValues {
 			queryInput.ExpressionAttributeNames[fmt.Sprintf("#%s", key)] = aws.String(key)
 			queryInput.ExpressionAttributeValues[fmt.Sprintf(":%s", key)] = &dynamo.AttributeValue{
 				S: aws.String(value),
@@ -65,10 +65,10 @@ func (c *DynamoDBClient) query() (events.APIGatewayProxyResponse, error) {
 		}, fmt.Errorf("failed to run database query: %v", err)
 	}
 
-	// return a JSON based response
+	// response structure validation
 	var jsonMap []map[string]interface{}
-	if conf.Response.DataStruct != "" {
-		err := json.Unmarshal([]byte(conf.Response.DataStruct), &jsonMap)
+	if conf.Resources.Response.DataStruct != "" {
+		err := json.Unmarshal([]byte(conf.Resources.Response.DataStruct), &jsonMap)
 		if err != nil {
 			return events.APIGatewayProxyResponse{
 				StatusCode: 500,
@@ -105,6 +105,7 @@ func (c *DynamoDBClient) query() (events.APIGatewayProxyResponse, error) {
 		}, nil
 	}
 
+	// return a JSON based response
 	response, err := json.Marshal(result.Items)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
