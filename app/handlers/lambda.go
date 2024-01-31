@@ -21,7 +21,7 @@ func HandleLambdaEvent(ctx context.Context, event events.APIGatewayProxyRequest)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
 			StatusCode: 500,
-		}, fmt.Errorf("erro ao deserializar o corpo da requisicao: %v", err)
+		}, fmt.Errorf("failed to unmarshal request body: %v", err)
 	}
 
 	InputData.HTTPMethod = event.HTTPMethod

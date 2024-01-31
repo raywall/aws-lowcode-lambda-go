@@ -1,0 +1,25 @@
+{
+    "alowedMethods": [
+        "GET",
+        "POST"
+    ],
+    "dataStruct": "[{\"username\": \"\", \"age\": \"\"}]",
+    "filter": "#age > :age",
+    "filterValues": {
+        "age": "S"
+    },
+    "keys": {
+        "email": {
+            "operator": "="
+        },
+        "status": {
+            "operator": "="
+        }
+    },
+    "projectionCols": [
+        "email",
+        "username",
+        "age"
+    ],
+    "tableName": "users"
+}

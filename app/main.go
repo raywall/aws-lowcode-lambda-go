@@ -1,26 +1,33 @@
 package main
 
 import (
+	"embed"
+	"fmt"
 	"log"
 	"lowcode-lambda/clients/dynamodb"
-	"lowcode-lambda/clients/rules"
+	"lowcode-lambda/clients/roles"
 	"lowcode-lambda/handlers"
 	"os"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-var (
-	err     error
-	version string = "beta"
-)
+var version string = "beta"
 
 func init() {
-	rules.FilePath(os.Getenv("FILENAME")).Load(handlers.InputData)
+	//go:embed sample.json
+	var fs embed.FS
 
-	handlers.Client, err = dynamodb.NewDynamoDBClient()
+	roleData, err := fs.ReadFile(os.Getenv("FILENAME"))
 	if err != nil {
-		log.Fatalf("erro ao iniciar cliente dynamodb: %v", err)
+		return fmt.Errorf("failed to read lowcode role file: %v", err)
+	}
+
+	roles.RoleData(roleData).Load(handlers.InputData)
+
+	handlers.Client, err := dynamodb.NewDynamoDBClient()
+	if err != nil {
+		log.Fatalf("failed to start a dynamodb client: %v", err)
 	}
 }
 
