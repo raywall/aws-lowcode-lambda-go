@@ -6,7 +6,6 @@ import (
 
 	"github.com/raywall/aws-lowcode-lambda-go/config"
 	"github.com/raywall/aws-lowcode-lambda-go/server/clients/dynamodb"
-	"github.com/raywall/aws-lowcode-lambda-go/server/handlers"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -21,7 +20,7 @@ func TestLoadConfig(t *testing.T) {
 		t.Errorf("failed loading config sample data: %v", err)
 	}
 
-	if handlers.Client, err = dynamodb.NewDynamoDBClient(conf); err != nil {
+	if dynamodb.Client, err = dynamodb.NewDynamoDBClient(conf); err != nil {
 		t.Errorf("failed creating a new DynamoDBClient: %v", err)
 	}
 }
