@@ -1,11 +1,9 @@
 package main
 
-import (
-	"fmt"
-)
+import "fmt"
 
-var version string = "v0.1.3"
+var version string = "v0.1.5"
 
 func main() {
-	fmt.Printf("Versão: %s\n", version)
+	fmt.Println("Version:", version)
 }
