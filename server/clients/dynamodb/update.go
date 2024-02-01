@@ -9,6 +9,14 @@ import (
 	dynamo "github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
+// update is an internal function responsible for update, remove or add the attributes of an item
+// into the DynamoDB table specified in your configuration file. If the item is updated successfully, you
+// will receive a 200 (Ok) status code in response of your request. However, if something goes wrong, you
+// will receive a 500 status code and an error specifying the problem.
+//
+// the content with the item attributes nedds to be in the body of the request to proceed with the update
+//
+// To use this function, you need to specify the 'TableName' and 'Keys' in your configuration file.
 func (c *DynamoDBClient) update(data *map[string]interface{}) (events.APIGatewayProxyResponse, error) {
 	keys, err := conf.KeyCondition()
 	if err != nil {

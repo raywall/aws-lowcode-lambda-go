@@ -10,7 +10,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-// query realiza uma consulta no DynamoDB com base no input
+// query is an internal function that checks your DynamoDB table for an item or a set of items that
+// match the parameters specified in your configuration file.
+//
+// If you have specified the 'ProjectionCols' attribute, the query will return only the
+// columns previously indicated.
+//
+// If you have specified the 'Filter' and 'FilterValues' attributes, the filter will be applied to
+// your query.
+//
+// To use this function, you need to specify the 'TableName' and 'Keys' in your configuration file.
 func (c *DynamoDBClient) query() (events.APIGatewayProxyResponse, error) {
 	var queryInput = &dynamo.QueryInput{
 		TableName:                 aws.String(conf.Resources.Database.TableName),
