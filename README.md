@@ -41,16 +41,16 @@ Resources:
 package main
 
 import (
-    "os"
-    "fmt"
+  "os"
+  "fmt"
 
-    "github.com/raywall/aws-lowcode-lambda-go/config"
+  "github.com/raywall/aws-lowcode-lambda-go/config"
 	"github.com/raywall/aws-lowcode-lambda-go/server/clients/dynamodb"
 	"github.com/raywall/aws-lowcode-lambda-go/server/handlers"
 )
 
 func init() {
-    conf := &config.Global
+  conf := &config.Global
 
 	data, err := os.ReadFile(os.Getenv("CONFIG_SAMPLE"))
 	if err != nil {
@@ -62,7 +62,7 @@ func init() {
 		log.Fatalf("failed loading settings: %v", err)
 	}
 
-    // create a handler for integration between an api gateway and a dynamodb table
+  // create a handler for integration between an api gateway and a dynamodb table
 	handlers.Client, err = dynamodb.NewDynamoDBClient(conf)
 	if err != nil {
 		log.Fatalf("failed starting a dynamodb client: %v", err)

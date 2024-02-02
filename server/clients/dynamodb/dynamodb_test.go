@@ -4,11 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/raywall/aws-lowcode-lambda-go/config"
+	"github.com/raywall/aws-lowcode-lambda-go/lambda"
 )
 
 func TestLoadConfig(t *testing.T) {
-	conf := &config.Global
+	conf := &lambda.Global
 
 	data, err := os.ReadFile("sample.yaml")
 	if err != nil {

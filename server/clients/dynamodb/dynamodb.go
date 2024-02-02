@@ -21,12 +21,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	dynamo "github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
-	"github.com/raywall/aws-lowcode-lambda-go/config"
+	"github.com/raywall/aws-lowcode-lambda-go/lambda"
 )
 
 // Conf refers to the lambda function's configuration, containing all the necessary information
 // about the request, database, and response parameters that the client uses to orchestrate requests.
-var conf = &config.Global
+var conf = &lambda.Global
 
 // DynamoDBClient is a struct representing the DynamoDB client. It includes the 'svc' attribute,
 // which is an interface to enable mocking the dynamodb.DynamoDB service client's API operation,
@@ -45,7 +45,7 @@ type DynamoDBClient struct {
 // reference to the DynamoDBClient.
 //
 // If something goes wrong, you will receive an empty client and an error.
-func NewDynamoDBClient(configuration ...*config.Config) (*DynamoDBClient, error) {
+func NewDynamoDBClient(configuration ...*lambda.Config) (*DynamoDBClient, error) {
 	config := aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))}
 
 	if endpoint, present := os.LookupEnv("DYNAMO_ENDPOINT"); present {

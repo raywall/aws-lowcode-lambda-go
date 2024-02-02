@@ -1,7 +1,4 @@
-// This package provides the configuration you need to specify in order to use
-// the low-code lambda project. With this information, the package will be able to orchestrate
-// all your requests properly, applying the filters and allowing only the HTTP methods indicated.
-package config
+package lambda
 
 import (
 	"errors"

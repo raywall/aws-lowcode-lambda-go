@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/raywall/aws-lowcode-lambda-go/config"
+	"github.com/raywall/aws-lowcode-lambda-go/lambda"
 )
 
 // Client refers to the DynamoDBClient created for integrating the Lambda function with DynamoDB.
@@ -22,9 +22,9 @@ var Client *DynamoDBClient
 //
 // If everything is okay, you will receive an APIGatewayProxyResponse. However, if something goes wrong,
 // you'll receive an empty response and an error describing the problem.
-func HandleLambdaEvent(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func HandleAPIGatewayEvent(ctx context.Context, event events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	var jsonMap map[string]interface{}
-	conf := &config.Global
+	conf := &lambda.Global
 
 	err := json.Unmarshal([]byte(event.Body), &jsonMap)
 	if err != nil {
@@ -42,4 +42,40 @@ func HandleLambdaEvent(ctx context.Context, event events.APIGatewayProxyRequest)
 	}
 
 	return Client.handleRequest(&jsonMap)
+}
+
+func HandleDynamoDBStreamEvent(ctx context.Context, event events.DynamoDBEvent) (events.DynamoDBEventResponse, error) {
+
+	if len(event.Records) > 0 {
+
+		for _, evt := range event.Records {
+			switch evt.EventName {
+			case "MODIFY":
+
+			case "REMOVE":
+
+			default:
+			}
+		}
+	}
+
+	return events.DynamoDBEventResponse{}, nil
+}
+
+func HandleSQSEvent(ctx context.Context, event events.DynamoDBEvent) (events.DynamoDBEventResponse, error) {
+
+	if len(event.Records) > 0 {
+
+		for _, evt := range event.Records {
+			switch evt.EventName {
+			case "MODIFY":
+
+			case "REMOVE":
+
+			default:
+			}
+		}
+	}
+
+	return events.DynamoDBEventResponse{}, nil
 }
