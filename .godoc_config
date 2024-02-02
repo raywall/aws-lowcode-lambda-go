@@ -1,0 +1,20 @@
+{
+	"PkgHandler": {
+		"Pattern": "/aws-lowcode-lambda-go",
+		"StripPrefix": "/aws-lowcode-lambda-go",
+		"Include": [
+			"/src/github.com/raywall/aws-lowcode-lambda-go/config", 
+			"/src/github.com/raywall/aws-lowcode-lambda-go/server/clients/api", 
+			"/src/github.com/raywall/aws-lowcode-lambda-go/server/clients/dynamodb"
+		],
+		"Exclude": [
+			"/src/github.com/raywall/aws-lowcode-lambda-go/sam" 
+		],
+		"IgnoredSuffixes": ["iface"]
+	},
+	"Github": {
+		"Tag": "main",
+		"Repo": "/raywall/aws-lowcode-lambda-go",
+		"UseGithub": true
+	}
+}
