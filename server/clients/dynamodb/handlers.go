@@ -69,7 +69,7 @@ func HandleSQSEvent(ctx context.Context, event events.DynamoDBEvent) (events.Dyn
 		for _, evt := range event.Records {
 			switch evt.EventName {
 			case "MODIFY":
-				evt.
+
 			case "REMOVE":
 
 			default:
