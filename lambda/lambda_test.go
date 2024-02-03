@@ -7,4 +7,6 @@ import (
 func TestLoadConfig(t *testing.T) {
 	lowcodeFunction := LowcodeFunction{}
 	lowcodeFunction.FromConfigFile("sample.yaml", "APIGATEWAY", "DYNAMODB")
+
+	// lambda.Start(lowcodeFunction.handler)
 }

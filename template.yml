@@ -11,11 +11,21 @@ Resources:
       MethodSettings:
         - ResourcePath: /{proxy+}
           HttpMethod: POST
+  
+  ConfigLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: lowcodeLayer
+      ContentUri: ./samples
+      CompatibleRuntimes:
+        - go1.x
+      RetentionPolicy: Retain
+
 
   LowcodeFunction:
     Type: "AWS::Serverless::Function"
     Properties:
-      CodeUri: /.
+      CodeUri: ./
       Handler: main
       Description: A serverless locode function integrated with a local DynamoDB
       FunctionName: lowcode-function
@@ -27,8 +37,10 @@ Resources:
       Environment:
         Variables:
           DYNAMO_ENDPOINT: http://dynamodb:8000
-          CONFIG_SAMPLE: sample.yaml
+          CONFIG_SAMPLE: /opt/sample.yaml
           AWS_REGION: us-east-1
+      Layers:
+        - !Ref ConfigLayer
       Events:
         ProxyEndpoint:
           Type: Api

@@ -6,20 +6,21 @@ import (
 	"os"
 
 	"github.com/jmespath/go-jmespath"
+	"github.com/raywall/aws-lowcode-lambda-go/config"
 	"github.com/raywall/aws-lowcode-lambda-go/server/clients/dynamodb"
 )
 
 const _ = jmespath.ASTEmpty
 
 type LowcodeFunction struct {
-	handler     interface{}
-	settings    Config
-	resource    string
-	destination string
+	Handler     interface{}
+	Settings    config.Config
+	Resource    string
+	Destination string
 }
 
 func (function *LowcodeFunction) FromConfigFile(filePath string, resource string, destination string) error {
-	conf := &Global
+	conf := &config.Global
 
 	// read a configuration file content
 	data, err := os.ReadFile(filePath)
@@ -42,13 +43,13 @@ func (function *LowcodeFunction) FromConfigFile(filePath string, resource string
 
 		switch resource {
 		case "APIGATEWAY":
-			function.handler = dynamodb.HandleAPIGatewayEvent
+			function.Handler = dynamodb.HandleAPIGatewayEvent
 
 		case "DYNAMOSTREAM":
-			function.handler = dynamodb.HandleDynamoDBStreamEvent
+			function.Handler = dynamodb.HandleDynamoDBStreamEvent
 
 		case "SQS":
-			function.handler = dynamodb.HandleSQSEvent
+			function.Handler = dynamodb.HandleSQSEvent
 
 		default:
 			return errors.ErrUnsupported
