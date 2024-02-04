@@ -1,22 +1,17 @@
 package lambda
 
 import (
-	"errors"
+	"context"
+	"fmt"
 	"log"
 	"os"
 
-	"github.com/jmespath/go-jmespath"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/raywall/aws-lowcode-lambda-go/config"
-	"github.com/raywall/aws-lowcode-lambda-go/server/clients/dynamodb"
 )
 
-const _ = jmespath.ASTEmpty
-
 type LowcodeFunction struct {
-	Handler     interface{}
-	Settings    config.Config
-	Resource    string
-	Destination string
+	Settings config.Config
 }
 
 func (function *LowcodeFunction) FromConfigFile(filePath string, resource string, destination string) error {
@@ -34,29 +29,29 @@ func (function *LowcodeFunction) FromConfigFile(filePath string, resource string
 		log.Fatalf("failed loading settings: %v", err)
 	}
 
-	// check resource, destination and create a handler to integrate the services
-	if destination == "DYNAMODB" {
-		dynamodb.Client, err = dynamodb.NewDynamoDBClient(conf)
-		if err != nil {
-			log.Fatalf("failed starting a dynamodb client: %v", err)
-		}
+	// function.HandlerRequest = handleRequest
+	return nil
+}
 
-		switch resource {
-		case "APIGATEWAY":
-			function.Handler = dynamodb.HandleAPIGatewayEvent
+func (function *LowcodeFunction) HandleRequest(ctx context.Context, evt interface{}) (any, error) {
+	var event interface{} = evt
 
-		case "DYNAMOSTREAM":
-			function.Handler = dynamodb.HandleDynamoDBStreamEvent
-
-		case "SQS":
-			function.Handler = dynamodb.HandleSQSEvent
-
-		default:
-			return errors.ErrUnsupported
-		}
-	} else {
-		return errors.ErrUnsupported
+	if _, sam := os.LookupEnv("DYNAMO_ENDPOINT"); sam {
+		obj := events.APIGatewayProxyRequest{}
+		serializeLocalRequest(evt.(map[string]interface{}), &obj)
+		event = obj
 	}
 
-	return nil
+	switch e := event.(type) {
+	case events.APIGatewayProxyRequest:
+		return handleAPIGatewayEvent(e)
+	case events.SNSEvent:
+		return handleSNSEvent(e), nil
+	case events.SQSEvent:
+		return handleSQSEvent(e), nil
+	case events.DynamoDBEvent:
+		return handleDynamoDBEvent(e), nil
+	default:
+		return "", fmt.Errorf("event unsupported: %T", e)
+	}
 }

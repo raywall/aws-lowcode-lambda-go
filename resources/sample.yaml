@@ -10,19 +10,19 @@ Resources:
     - DELETE
 
   Database:
-    TableName: users
+    TableName: UserTable
     Keys:
-      email:
+      UserID:
         Operator: "="
-      order:
-        Operator: "="
+      # EmailAddress:
+      #   Operator: "="
     Filter: "#age > :age"
     FilterValues:
       age: "5"
     ProjectionCols:
-    - email
-    - username
-    - age
+    - UserID
+    - EmailAddress
+    - FirstName
   
   Response:
     DataStruct: '[{"username": "", "age": ""}]'
