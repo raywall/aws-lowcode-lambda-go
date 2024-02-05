@@ -1,4 +1,4 @@
-package lambda
+package attributes
 
 import (
 	"encoding/json"
@@ -8,9 +8,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/raywall/aws-lowcode-lambda-go/config"
 )
 
-func serializeLocalRequest(src map[string]interface{}, dest interface{}) error {
+// Conf refers to the lambda function's configuration, containing all the necessary information
+// about the request, database, and response parameters that the client uses to orchestrate requests.
+var conf = &config.Global
+
+func SerializeLocalRequest(src map[string]interface{}, dest interface{}) error {
 	if src == nil || dest == nil {
 		return errors.New("src and dest cannot be nil")
 	}
@@ -47,7 +52,7 @@ func serializeLocalRequest(src map[string]interface{}, dest interface{}) error {
 // 	return output, nil
 // }
 
-func marshalAttributeNames(raw map[string]interface{}) (map[string]*string, error) {
+func MarshalAttributeNames(raw map[string]interface{}) (map[string]*string, error) {
 	data := make(map[string]*string)
 	for key := range raw {
 		if _, ok := conf.Resources.Database.Keys[key]; ok {
@@ -58,7 +63,7 @@ func marshalAttributeNames(raw map[string]interface{}) (map[string]*string, erro
 	return data, nil
 }
 
-func marshalAttributeValues(raw map[string]interface{}) (map[string]*dynamodb.AttributeValue, error) {
+func MarshalAttributeValues(raw map[string]interface{}) (map[string]*dynamodb.AttributeValue, error) {
 	data := make(map[string]interface{})
 	for key, value := range raw {
 		if _, ok := conf.Resources.Database.Keys[key]; ok {

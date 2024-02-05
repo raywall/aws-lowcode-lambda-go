@@ -1,7 +1,7 @@
-package lambda
+package resources
 
 import "github.com/aws/aws-lambda-go/events"
 
-func handleSNSEvent(event events.SNSEvent) string {
+func HandleSNSEvent(event events.SNSEvent) string {
 	return "SNS event received"
 }

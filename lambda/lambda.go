@@ -8,6 +8,8 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/raywall/aws-lowcode-lambda-go/config"
+	"github.com/raywall/aws-lowcode-lambda-go/lambda/attributes"
+	"github.com/raywall/aws-lowcode-lambda-go/lambda/resources"
 )
 
 type LowcodeFunction struct {
@@ -29,7 +31,6 @@ func (function *LowcodeFunction) FromConfigFile(filePath string, resource string
 		log.Fatalf("failed loading settings: %v", err)
 	}
 
-	// function.HandlerRequest = handleRequest
 	return nil
 }
 
@@ -38,19 +39,19 @@ func (function *LowcodeFunction) HandleRequest(ctx context.Context, evt interfac
 
 	if _, sam := os.LookupEnv("DYNAMO_ENDPOINT"); sam {
 		obj := events.APIGatewayProxyRequest{}
-		serializeLocalRequest(evt.(map[string]interface{}), &obj)
+		attributes.SerializeLocalRequest(evt.(map[string]interface{}), &obj)
 		event = obj
 	}
 
 	switch e := event.(type) {
 	case events.APIGatewayProxyRequest:
-		return handleAPIGatewayEvent(e)
+		return resources.HandleAPIGatewayEvent(e)
 	case events.SNSEvent:
-		return handleSNSEvent(e), nil
+		return resources.HandleSNSEvent(e), nil
 	case events.SQSEvent:
-		return handleSQSEvent(e), nil
+		return resources.HandleSQSEvent(e), nil
 	case events.DynamoDBEvent:
-		return handleDynamoDBEvent(e), nil
+		return resources.HandleDynamoDBEvent(e), nil
 	default:
 		return "", fmt.Errorf("event unsupported: %T", e)
 	}

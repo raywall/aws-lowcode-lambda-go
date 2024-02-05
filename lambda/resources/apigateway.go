@@ -1,4 +1,4 @@
-package lambda
+package resources
 
 import (
 	"encoding/json"
@@ -11,10 +11,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/raywall/aws-lowcode-lambda-go/config"
+	"github.com/raywall/aws-lowcode-lambda-go/lambda/attributes"
 )
 
 type ActionRequested string
 
+// Conf refers to the lambda function's configuration, containing all the necessary information
+// about the request, database, and response parameters that the client uses to orchestrate requests.
 var conf = &config.Global
 
 const (
@@ -31,8 +34,8 @@ const (
 // da função serão permitidos.
 //
 // Caso o método enviado não seja suportado pela função ainda, ela responderá com um código 400
-func handleAPIGatewayEvent(event events.APIGatewayProxyRequest) (any, error) {
-	data, err := deserializeAvro([]byte(event.Body), "/opt/user.avsc")
+func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest) (any, error) {
+	data, err := attributes.DeserializeAvro([]byte(event.Body), "/opt/user.avsc")
 	if err != nil {
 		return "", err
 	}
@@ -122,10 +125,10 @@ func readFromDynamoDB(data map[string]interface{}) (events.APIGatewayProxyRespon
 		KeyConditionExpression: aws.String("#UserID = :UserID"),
 	}
 
-	keyNames, _ := marshalAttributeNames(data)
+	keyNames, _ := attributes.MarshalAttributeNames(data)
 	input.SetExpressionAttributeNames(keyNames)
 
-	keyValues, _ := marshalAttributeValues(data)
+	keyValues, _ := attributes.MarshalAttributeValues(data)
 	input.SetExpressionAttributeValues(keyValues)
 
 	result, err := svc.Query(input)

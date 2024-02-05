@@ -1,4 +1,4 @@
-package lambda
+package attributes
 
 import (
 	"os"
@@ -6,7 +6,7 @@ import (
 	goavro "github.com/linkedin/goavro/v2"
 )
 
-func deserializeAvro(avroData []byte, avroSchemaPath string) (map[string]interface{}, error) {
+func DeserializeAvro(avroData []byte, avroSchemaPath string) (map[string]interface{}, error) {
 	avroSchema, err := os.ReadFile(avroSchemaPath)
 	if err != nil {
 		return nil, err
