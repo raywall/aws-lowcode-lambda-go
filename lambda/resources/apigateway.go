@@ -3,11 +3,10 @@ package resources
 import (
 	"encoding/json"
 	"fmt"
-	"os"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/raywall/aws-lowcode-lambda-go/config"
@@ -19,6 +18,7 @@ type ActionRequested string
 // Conf refers to the lambda function's configuration, containing all the necessary information
 // about the request, database, and response parameters that the client uses to orchestrate requests.
 var conf = &config.Global
+var svc *dynamodb.DynamoDB
 
 const (
 	Create ActionRequested = "POST"
@@ -34,10 +34,15 @@ const (
 // da função serão permitidos.
 //
 // Caso o método enviado não seja suportado pela função ainda, ela responderá com um código 400
-func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest) (any, error) {
+func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest, client *dynamodb.DynamoDB) *attributes.ExecutionResponse {
+	svc = client
+
 	data, err := attributes.DeserializeAvro([]byte(event.Body), "/opt/user.avsc")
 	if err != nil {
-		return "", err
+		return &attributes.ExecutionResponse{
+			StatusCode: 500,
+			Error:      err,
+		}
 	}
 
 	switch ActionRequested(event.HTTPMethod) {
@@ -50,10 +55,10 @@ func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest) (any, error) {
 	case Delete:
 		return deleteOnDynamoDB(data)
 	default:
-		return events.APIGatewayProxyResponse{
+		return &attributes.ExecutionResponse{
 			StatusCode: 404,
-			Body:       fmt.Sprintf("method unsupported: %s", event.HTTPMethod),
-		}, nil
+			Message:    fmt.Sprintf("method unsupported: %s", event.HTTPMethod),
+		}
 	}
 }
 
@@ -69,19 +74,14 @@ func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest) (any, error) {
 //
 // Para usar esta função, você também precisa especificar o Nome da Tabela do DynamoDB e as chaves que
 // compõem a chave primária da tabela.
-func saveToDynamoDB(data map[string]interface{}) (events.APIGatewayProxyResponse, error) {
-	config := aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))}
-	config.Endpoint = aws.String(os.Getenv("DYNAMO_ENDPOINT"))
-
-	sess, _ := session.NewSession(&config)
-	svc := dynamodb.New(sess)
-
+func saveToDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
 	av, err := dynamodbattribute.MarshalMap(data)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
+		return &attributes.ExecutionResponse{
 			StatusCode: 500,
-			Body:       fmt.Sprintf("failed marshal data: %v", err),
-		}, err
+			Message:    fmt.Sprintf("failed marshal data: %v", err),
+			Error:      err,
+		}
 	}
 
 	input := &dynamodb.PutItemInput{
@@ -91,15 +91,16 @@ func saveToDynamoDB(data map[string]interface{}) (events.APIGatewayProxyResponse
 
 	_, err = svc.PutItem(input)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
+		return &attributes.ExecutionResponse{
 			StatusCode: 500,
-			Body:       fmt.Sprintf("failed input new item: %v", err),
-		}, err
+			Message:    fmt.Sprintf("failed input new item: %v", err),
+			Error:      err,
+		}
 	}
 
-	return events.APIGatewayProxyResponse{
+	return &attributes.ExecutionResponse{
 		StatusCode: 201,
-	}, nil
+	}
 }
 
 // readFromDynamoDB é uma função interna que possibilita realizar consultas em uma tabela do DynamoDB
@@ -113,72 +114,71 @@ func saveToDynamoDB(data map[string]interface{}) (events.APIGatewayProxyResponse
 //
 // Para usar esta função, você também precisa especificar o Nome da Tabela do DynamoDB e as chaves que
 // compõem a chave primária da tabela.
-func readFromDynamoDB(data map[string]interface{}) (events.APIGatewayProxyResponse, error) {
-	config := aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))}
-	config.Endpoint = aws.String(os.Getenv("DYNAMO_ENDPOINT"))
-
-	sess, _ := session.NewSession(&config)
-	svc := dynamodb.New(sess)
-
+func readFromDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
 	input := &dynamodb.QueryInput{
 		TableName:              aws.String(conf.Resources.Database.TableName),
 		KeyConditionExpression: aws.String("#UserID = :UserID"),
 	}
 
-	keyNames, _ := attributes.MarshalAttributeNames(data)
+	keyNames, _ := attributes.MarshalAttributeNames(data, "#")
 	input.SetExpressionAttributeNames(keyNames)
 
-	keyValues, _ := attributes.MarshalAttributeValues(data)
+	keyValues, _ := attributes.MarshalAttributeValues(data, ":")
 	input.SetExpressionAttributeValues(keyValues)
 
 	result, err := svc.Query(input)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
+		return &attributes.ExecutionResponse{
 			StatusCode: 500,
-			Body:       fmt.Sprintf("failed input new item: %v", err),
-		}, err
+			Message:    fmt.Sprintf("failed input new item: %v", err),
+			Error:      err,
+		}
 	}
 
 	var jsonMap []map[string]interface{}
 	if conf.Resources.Response.DataStruct != "" {
 		err := json.Unmarshal([]byte(conf.Resources.Response.DataStruct), &jsonMap)
 		if err != nil {
-			return events.APIGatewayProxyResponse{
+			return &attributes.ExecutionResponse{
 				StatusCode: 500,
-			}, fmt.Errorf("failed unmarshal data struct config: %v", err)
+				Error:      fmt.Errorf("failed unmarshal data struct config: %v", err),
+			}
 		}
 
 		err = dynamodbattribute.UnmarshalListOfMaps(result.Items, &jsonMap)
 		if err != nil {
-			return events.APIGatewayProxyResponse{
+			return &attributes.ExecutionResponse{
 				StatusCode: 500,
-			}, fmt.Errorf("failed unmarshal record: %v", err)
+				Error:      fmt.Errorf("failed unmarshal record: %v", err),
+			}
 		}
 
 		jsonResponse, err := json.Marshal(data)
 		if err != nil {
-			return events.APIGatewayProxyResponse{
+			return &attributes.ExecutionResponse{
 				StatusCode: 500,
-			}, fmt.Errorf("failed marshal mapped response: %v", err)
+				Error:      fmt.Errorf("failed marshal mapped response: %v", err),
+			}
 		}
 
-		return events.APIGatewayProxyResponse{
-			Body:       string(jsonResponse),
+		return &attributes.ExecutionResponse{
 			StatusCode: 200,
-		}, nil
+			Message:    string(jsonResponse),
+		}
 	}
 
 	response, err := json.Marshal(result.Items)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
+		return &attributes.ExecutionResponse{
 			StatusCode: 500,
-		}, fmt.Errorf("failed marshal response: %v", err)
+			Error:      fmt.Errorf("failed marshal response: %v", err),
+		}
 	}
 
-	return events.APIGatewayProxyResponse{
-		Body:       string(response),
+	return &attributes.ExecutionResponse{
 		StatusCode: 200,
-	}, nil
+		Message:    string(response),
+	}
 }
 
 // updateOnDynamoDB é uma função interna responsável por atualizar, remover ou adicionar os atributos
@@ -188,15 +188,83 @@ func readFromDynamoDB(data map[string]interface{}) (events.APIGatewayProxyRespon
 //
 // Os atributos do ítem que serão modificados, juntamente com os atributos da chave primária precisam ser
 // enviados no corpo da requisição para que a atualização seja efetuada.
-func updateOnDynamoDB(data map[string]interface{}) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
+func updateOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
+	updateInput := &dynamodb.UpdateItemInput{
+		TableName: aws.String(conf.Resources.Database.TableName),
+	}
+
+	keyNames, _ := attributes.MarshalAttributeNames(data, "#")
+	updateInput.SetExpressionAttributeNames(keyNames)
+
+	keyValues, _ := attributes.MarshalAttributeValues(data, ":")
+	updateInput.SetExpressionAttributeValues(keyValues)
+
+	cols := []string{}
+	updateMode := "SET"
+
+	keys := make(map[string]interface{})
+	for key, _ := range conf.Resources.Database.Keys {
+		cols = append(cols, fmt.Sprintf("#%s = :%s", key, key))
+		if value, ok := data[key]; ok {
+			keys[key] = value
+		}
+	}
+
+	primaryKeys, err := dynamodbattribute.MarshalMap(keys)
+	if err != nil {
+		return &attributes.ExecutionResponse{
+			StatusCode: 500,
+			Error:      err,
+		}
+	}
+
+	updateInput.SetKey(primaryKeys)
+	updateInput.SetUpdateExpression(fmt.Sprintf("%s %s", updateMode, strings.Join(cols, ",")))
+
+	_, err = svc.UpdateItem(updateInput)
+	if err != nil {
+		return &attributes.ExecutionResponse{
+			StatusCode: 500,
+			Error:      err,
+		}
+	}
+
+	return &attributes.ExecutionResponse{
 		StatusCode: 200,
-	}, nil
+	}
 }
 
-// delete
-func deleteOnDynamoDB(data map[string]interface{}) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
+// delete is an internal function responsible for remove an item of the DynamoDB table using the settings
+// specified in your configuration file. If the item is removed successfully, you will receive a 200 (Ok)
+// status code in response of your request. However, if something goes wrong, you will receive a 500 status
+// code and an error specifying the problem
+//
+// you need to send the values of the keys in your request to properly remove the item
+//
+// To use this function, you need to specify the 'TableName' and 'Keys' in your configuration file.
+func deleteOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
+	keys, err := attributes.MarshalAttributeValues(data, "")
+	if err != nil {
+		return &attributes.ExecutionResponse{
+			StatusCode: 500,
+			Error:      err,
+		}
+	}
+
+	deleteInput := dynamodb.DeleteItemInput{
+		TableName: aws.String(conf.Resources.Database.TableName),
+		Key:       keys,
+	}
+
+	_, err = svc.DeleteItem(&deleteInput)
+	if err != nil {
+		return &attributes.ExecutionResponse{
+			StatusCode: 500,
+			Error:      fmt.Errorf("failed to remove table item: %v", err),
+		}
+	}
+
+	return &attributes.ExecutionResponse{
 		StatusCode: 200,
-	}, nil
+	}
 }

@@ -52,22 +52,22 @@ func SerializeLocalRequest(src map[string]interface{}, dest interface{}) error {
 // 	return output, nil
 // }
 
-func MarshalAttributeNames(raw map[string]interface{}) (map[string]*string, error) {
+func MarshalAttributeNames(raw map[string]interface{}, separator string) (map[string]*string, error) {
 	data := make(map[string]*string)
 	for key := range raw {
 		if _, ok := conf.Resources.Database.Keys[key]; ok {
-			data[fmt.Sprintf("#%s", key)] = aws.String(key)
+			data[fmt.Sprintf("%s%s", separator, key)] = aws.String(key)
 		}
 	}
 
 	return data, nil
 }
 
-func MarshalAttributeValues(raw map[string]interface{}) (map[string]*dynamodb.AttributeValue, error) {
+func MarshalAttributeValues(raw map[string]interface{}, separator string) (map[string]*dynamodb.AttributeValue, error) {
 	data := make(map[string]interface{})
 	for key, value := range raw {
 		if _, ok := conf.Resources.Database.Keys[key]; ok {
-			data[fmt.Sprintf(":%s", key)] = value
+			data[fmt.Sprintf("%s%s", separator, key)] = value
 		}
 	}
 

@@ -1,7 +1,10 @@
 package resources
 
-import "github.com/aws/aws-lambda-go/events"
+import (
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+)
 
-func HandleSNSEvent(event events.SNSEvent) string {
+func HandleSNSEvent(event events.SNSEvent, client *dynamodb.DynamoDB) string {
 	return "SNS event received"
 }
