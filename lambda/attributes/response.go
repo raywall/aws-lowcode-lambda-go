@@ -2,6 +2,7 @@ package attributes
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -13,10 +14,17 @@ type ExecutionResponse struct {
 }
 
 func (response *ExecutionResponse) ToGatewayResponse() (events.APIGatewayProxyResponse, error) {
+	content := ""
 	data, _ := json.Marshal(response.Message)
+
+	if response.Message != nil {
+		content = string(data)
+	}
+
+	log.Println(content)
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: response.StatusCode,
-		Body:       string(data),
+		Body:       content,
 	}, response.Error
 }

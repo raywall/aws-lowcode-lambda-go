@@ -3,6 +3,7 @@ package resources
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -115,18 +116,18 @@ func saveToDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
 // Para usar esta função, você também precisa especificar o Nome da Tabela do DynamoDB e as chaves que
 // compõem a chave primária da tabela.
 func readFromDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
-	input := &dynamodb.QueryInput{
+	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(conf.Resources.Database.TableName),
 		KeyConditionExpression: aws.String("#UserID = :UserID"),
 	}
 
-	keyNames, _ := attributes.MarshalAttributeNames(data, "#")
-	input.SetExpressionAttributeNames(keyNames)
+	keyNames, _ := attributes.MarshalKeyAttributeNames(data, "#")
+	queryInput.SetExpressionAttributeNames(keyNames)
 
-	keyValues, _ := attributes.MarshalAttributeValues(data, ":")
-	input.SetExpressionAttributeValues(keyValues)
+	keyValues, _ := attributes.MarshalKeyAttributeValues(data, ":")
+	queryInput.SetExpressionAttributeValues(keyValues)
 
-	result, err := svc.Query(input)
+	result, err := svc.Query(queryInput)
 	if err != nil {
 		return &attributes.ExecutionResponse{
 			StatusCode: 500,
@@ -153,7 +154,7 @@ func readFromDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 			}
 		}
 
-		jsonResponse, err := json.Marshal(data)
+		jsonResponse, err := json.Marshal(jsonMap)
 		if err != nil {
 			return &attributes.ExecutionResponse{
 				StatusCode: 500,
@@ -201,12 +202,15 @@ func updateOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 
 	cols := []string{}
 	updateMode := "SET"
-
+	log.Println(keyNames, keyValues)
 	keys := make(map[string]interface{})
-	for key, _ := range conf.Resources.Database.Keys {
-		cols = append(cols, fmt.Sprintf("#%s = :%s", key, key))
-		if value, ok := data[key]; ok {
+	for key, value := range data {
+		if _, ok := conf.Resources.Database.Keys[key]; ok {
 			keys[key] = value
+			delete(keyNames, fmt.Sprintf("#%s", key))
+			delete(keyValues, fmt.Sprintf(":%s", key))
+		} else {
+			cols = append(cols, fmt.Sprintf("#%s = :%s", key, key))
 		}
 	}
 
@@ -243,20 +247,20 @@ func updateOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 //
 // To use this function, you need to specify the 'TableName' and 'Keys' in your configuration file.
 func deleteOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
-	keys, err := attributes.MarshalAttributeValues(data, "")
-	if err != nil {
-		return &attributes.ExecutionResponse{
-			StatusCode: 500,
-			Error:      err,
+	keys := make(map[string]interface{})
+	for key := range conf.Resources.Database.Keys {
+		if value, ok := data[key]; ok {
+			keys[key] = value
 		}
 	}
 
+	primaryKeys, _ := attributes.MarshalAttributeValues(keys, "")
 	deleteInput := dynamodb.DeleteItemInput{
 		TableName: aws.String(conf.Resources.Database.TableName),
-		Key:       keys,
+		Key:       primaryKeys,
 	}
 
-	_, err = svc.DeleteItem(&deleteInput)
+	_, err := svc.DeleteItem(&deleteInput)
 	if err != nil {
 		return &attributes.ExecutionResponse{
 			StatusCode: 500,

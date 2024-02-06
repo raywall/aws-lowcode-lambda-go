@@ -23,10 +23,10 @@ type LowcodeFunction struct {
 func (function *LowcodeFunction) FromConfigFile(filePath string, resource string, destination string) error {
 	conf := &config.Global
 
-	config := aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))}
-	config.Endpoint = aws.String(os.Getenv("DYNAMO_ENDPOINT"))
+	awsConfig := aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))}
+	awsConfig.Endpoint = aws.String(os.Getenv("DYNAMO_ENDPOINT"))
 
-	sess, _ := session.NewSession(&config)
+	sess, _ := session.NewSession(&awsConfig)
 	function.Client = dynamodb.New(sess)
 
 	// read a configuration file content

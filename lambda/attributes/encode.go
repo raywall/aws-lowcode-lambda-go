@@ -55,6 +55,15 @@ func SerializeLocalRequest(src map[string]interface{}, dest interface{}) error {
 func MarshalAttributeNames(raw map[string]interface{}, separator string) (map[string]*string, error) {
 	data := make(map[string]*string)
 	for key := range raw {
+		data[fmt.Sprintf("%s%s", separator, key)] = aws.String(key)
+	}
+
+	return data, nil
+}
+
+func MarshalKeyAttributeNames(raw map[string]interface{}, separator string) (map[string]*string, error) {
+	data := make(map[string]*string)
+	for key := range raw {
 		if _, ok := conf.Resources.Database.Keys[key]; ok {
 			data[fmt.Sprintf("%s%s", separator, key)] = aws.String(key)
 		}
@@ -64,6 +73,20 @@ func MarshalAttributeNames(raw map[string]interface{}, separator string) (map[st
 }
 
 func MarshalAttributeValues(raw map[string]interface{}, separator string) (map[string]*dynamodb.AttributeValue, error) {
+	data := make(map[string]interface{})
+	for key, value := range raw {
+		data[fmt.Sprintf("%s%s", separator, key)] = value
+	}
+
+	result, err := dynamodbattribute.MarshalMap(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func MarshalKeyAttributeValues(raw map[string]interface{}, separator string) (map[string]*dynamodb.AttributeValue, error) {
 	data := make(map[string]interface{})
 	for key, value := range raw {
 		if _, ok := conf.Resources.Database.Keys[key]; ok {
