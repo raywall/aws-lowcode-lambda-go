@@ -1,9 +1,8 @@
-package resources
+package receiver
 
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -11,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/raywall/aws-lowcode-lambda-go/config"
-	"github.com/raywall/aws-lowcode-lambda-go/lambda/attributes"
+	"github.com/raywall/aws-lowcode-lambda-go/lowcodeattribute"
 )
 
 type ActionRequested string
@@ -35,12 +34,12 @@ const (
 // da função serão permitidos.
 //
 // Caso o método enviado não seja suportado pela função ainda, ela responderá com um código 400
-func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest, client *dynamodb.DynamoDB) *attributes.ExecutionResponse {
+func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest, client *dynamodb.DynamoDB) *lowcodeattribute.ExecutionResponse {
 	svc = client
 
-	data, err := attributes.DeserializeAvro([]byte(event.Body), "/opt/user.avsc")
+	data, err := lowcodeattribute.DeserializeAvro([]byte(event.Body), "/opt/user.avsc")
 	if err != nil {
-		return &attributes.ExecutionResponse{
+		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 500,
 			Error:      err,
 		}
@@ -56,7 +55,7 @@ func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest, client *dynamodb
 	case Delete:
 		return deleteOnDynamoDB(data)
 	default:
-		return &attributes.ExecutionResponse{
+		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 404,
 			Message:    fmt.Sprintf("method unsupported: %s", event.HTTPMethod),
 		}
@@ -75,10 +74,10 @@ func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest, client *dynamodb
 //
 // Para usar esta função, você também precisa especificar o Nome da Tabela do DynamoDB e as chaves que
 // compõem a chave primária da tabela.
-func saveToDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
+func saveToDynamoDB(data map[string]interface{}) *lowcodeattribute.ExecutionResponse {
 	av, err := dynamodbattribute.MarshalMap(data)
 	if err != nil {
-		return &attributes.ExecutionResponse{
+		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 500,
 			Message:    fmt.Sprintf("failed marshal data: %v", err),
 			Error:      err,
@@ -92,14 +91,14 @@ func saveToDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
 
 	_, err = svc.PutItem(input)
 	if err != nil {
-		return &attributes.ExecutionResponse{
+		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 500,
 			Message:    fmt.Sprintf("failed input new item: %v", err),
 			Error:      err,
 		}
 	}
 
-	return &attributes.ExecutionResponse{
+	return &lowcodeattribute.ExecutionResponse{
 		StatusCode: 201,
 	}
 }
@@ -115,21 +114,21 @@ func saveToDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
 //
 // Para usar esta função, você também precisa especificar o Nome da Tabela do DynamoDB e as chaves que
 // compõem a chave primária da tabela.
-func readFromDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
+func readFromDynamoDB(data map[string]interface{}) *lowcodeattribute.ExecutionResponse {
 	queryInput := &dynamodb.QueryInput{
 		TableName:              aws.String(conf.Resources.Database.TableName),
 		KeyConditionExpression: aws.String("#UserID = :UserID"),
 	}
 
-	keyNames, _ := attributes.MarshalKeyAttributeNames(data, "#")
+	keyNames, _ := lowcodeattribute.MarshalKeyAttributeNames(data, "#")
 	queryInput.SetExpressionAttributeNames(keyNames)
 
-	keyValues, _ := attributes.MarshalKeyAttributeValues(data, ":")
+	keyValues, _ := lowcodeattribute.MarshalKeyAttributeValues(data, ":")
 	queryInput.SetExpressionAttributeValues(keyValues)
 
 	result, err := svc.Query(queryInput)
 	if err != nil {
-		return &attributes.ExecutionResponse{
+		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 500,
 			Message:    fmt.Sprintf("failed input new item: %v", err),
 			Error:      err,
@@ -140,7 +139,7 @@ func readFromDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 	if conf.Resources.Response.DataStruct != "" {
 		err := json.Unmarshal([]byte(conf.Resources.Response.DataStruct), &jsonMap)
 		if err != nil {
-			return &attributes.ExecutionResponse{
+			return &lowcodeattribute.ExecutionResponse{
 				StatusCode: 500,
 				Error:      fmt.Errorf("failed unmarshal data struct config: %v", err),
 			}
@@ -148,7 +147,7 @@ func readFromDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 
 		err = dynamodbattribute.UnmarshalListOfMaps(result.Items, &jsonMap)
 		if err != nil {
-			return &attributes.ExecutionResponse{
+			return &lowcodeattribute.ExecutionResponse{
 				StatusCode: 500,
 				Error:      fmt.Errorf("failed unmarshal record: %v", err),
 			}
@@ -156,13 +155,13 @@ func readFromDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 
 		jsonResponse, err := json.Marshal(jsonMap)
 		if err != nil {
-			return &attributes.ExecutionResponse{
+			return &lowcodeattribute.ExecutionResponse{
 				StatusCode: 500,
 				Error:      fmt.Errorf("failed marshal mapped response: %v", err),
 			}
 		}
 
-		return &attributes.ExecutionResponse{
+		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 200,
 			Message:    string(jsonResponse),
 		}
@@ -170,13 +169,13 @@ func readFromDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 
 	response, err := json.Marshal(result.Items)
 	if err != nil {
-		return &attributes.ExecutionResponse{
+		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 500,
 			Error:      fmt.Errorf("failed marshal response: %v", err),
 		}
 	}
 
-	return &attributes.ExecutionResponse{
+	return &lowcodeattribute.ExecutionResponse{
 		StatusCode: 200,
 		Message:    string(response),
 	}
@@ -189,20 +188,20 @@ func readFromDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 //
 // Os atributos do ítem que serão modificados, juntamente com os atributos da chave primária precisam ser
 // enviados no corpo da requisição para que a atualização seja efetuada.
-func updateOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
+func updateOnDynamoDB(data map[string]interface{}) *lowcodeattribute.ExecutionResponse {
 	updateInput := &dynamodb.UpdateItemInput{
 		TableName: aws.String(conf.Resources.Database.TableName),
 	}
 
-	keyNames, _ := attributes.MarshalAttributeNames(data, "#")
+	keyNames, _ := lowcodeattribute.MarshalAttributeNames(data, "#")
 	updateInput.SetExpressionAttributeNames(keyNames)
 
-	keyValues, _ := attributes.MarshalAttributeValues(data, ":")
+	keyValues, _ := lowcodeattribute.MarshalAttributeValues(data, ":")
 	updateInput.SetExpressionAttributeValues(keyValues)
 
 	cols := []string{}
 	updateMode := "SET"
-	log.Println(keyNames, keyValues)
+
 	keys := make(map[string]interface{})
 	for key, value := range data {
 		if _, ok := conf.Resources.Database.Keys[key]; ok {
@@ -216,7 +215,7 @@ func updateOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 
 	primaryKeys, err := dynamodbattribute.MarshalMap(keys)
 	if err != nil {
-		return &attributes.ExecutionResponse{
+		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 500,
 			Error:      err,
 		}
@@ -227,13 +226,13 @@ func updateOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 
 	_, err = svc.UpdateItem(updateInput)
 	if err != nil {
-		return &attributes.ExecutionResponse{
+		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 500,
 			Error:      err,
 		}
 	}
 
-	return &attributes.ExecutionResponse{
+	return &lowcodeattribute.ExecutionResponse{
 		StatusCode: 200,
 	}
 }
@@ -246,7 +245,7 @@ func updateOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 // you need to send the values of the keys in your request to properly remove the item
 //
 // To use this function, you need to specify the 'TableName' and 'Keys' in your configuration file.
-func deleteOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse {
+func deleteOnDynamoDB(data map[string]interface{}) *lowcodeattribute.ExecutionResponse {
 	keys := make(map[string]interface{})
 	for key := range conf.Resources.Database.Keys {
 		if value, ok := data[key]; ok {
@@ -254,7 +253,7 @@ func deleteOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 		}
 	}
 
-	primaryKeys, _ := attributes.MarshalAttributeValues(keys, "")
+	primaryKeys, _ := lowcodeattribute.MarshalAttributeValues(keys, "")
 	deleteInput := dynamodb.DeleteItemInput{
 		TableName: aws.String(conf.Resources.Database.TableName),
 		Key:       primaryKeys,
@@ -262,13 +261,13 @@ func deleteOnDynamoDB(data map[string]interface{}) *attributes.ExecutionResponse
 
 	_, err := svc.DeleteItem(&deleteInput)
 	if err != nil {
-		return &attributes.ExecutionResponse{
+		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 500,
 			Error:      fmt.Errorf("failed to remove table item: %v", err),
 		}
 	}
 
-	return &attributes.ExecutionResponse{
+	return &lowcodeattribute.ExecutionResponse{
 		StatusCode: 200,
 	}
 }

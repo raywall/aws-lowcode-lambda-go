@@ -1,4 +1,4 @@
-package attributes
+package lowcodeattribute
 
 import (
 	"encoding/json"

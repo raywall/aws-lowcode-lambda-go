@@ -1,0 +1,29 @@
+{
+    "title": "User",
+    "description": "custom object sample schema",
+    "type": "object",
+    "properties": {
+        "UserID": {
+            "description": "",
+            "type": "string"
+        },
+        "EmailAddress": {
+            "description": "",
+            "type": "string"
+        },
+        "FirstName": {
+            "description": "",
+            "type": "string"
+        },
+        "LastName": {
+            "description": "",
+            "type": "string"
+        },
+        "Status": {
+            "description": "",
+            "type": "boolean",
+            "default": "false"
+        }
+    },
+    "required": [ "UserID", "EmailAddress" ]
+}

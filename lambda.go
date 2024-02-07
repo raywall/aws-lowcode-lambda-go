@@ -1,4 +1,4 @@
-package lambda
+package lowcode
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/raywall/aws-lowcode-lambda-go/config"
-	"github.com/raywall/aws-lowcode-lambda-go/lambda/attributes"
-	"github.com/raywall/aws-lowcode-lambda-go/lambda/resources"
+	"github.com/raywall/aws-lowcode-lambda-go/lowcodeattribute"
+	"github.com/raywall/aws-lowcode-lambda-go/receiver"
 )
 
 type LowcodeFunction struct {
@@ -20,7 +20,7 @@ type LowcodeFunction struct {
 	Client   *dynamodb.DynamoDB
 }
 
-func (function *LowcodeFunction) FromConfigFile(filePath string, resource string, destination string) error {
+func (function *LowcodeFunction) NewWithConfig(filePath string) error {
 	conf := &config.Global
 
 	awsConfig := aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))}
@@ -49,19 +49,19 @@ func (function *LowcodeFunction) HandleRequest(ctx context.Context, evt interfac
 
 	if _, sam := os.LookupEnv("DYNAMO_ENDPOINT"); sam {
 		obj := events.APIGatewayProxyRequest{}
-		attributes.SerializeLocalRequest(evt.(map[string]interface{}), &obj)
+		lowcodeattribute.SerializeLocalRequest(evt.(map[string]interface{}), &obj)
 		event = obj
 	}
 
 	switch e := event.(type) {
 	case events.APIGatewayProxyRequest:
-		return resources.HandleAPIGatewayEvent(e, function.Client).ToGatewayResponse()
+		return receiver.HandleAPIGatewayEvent(e, function.Client).ToGatewayResponse()
 	case events.SNSEvent:
-		return resources.HandleSNSEvent(e, function.Client), nil
+		return receiver.HandleSNSEvent(e, function.Client), nil
 	case events.SQSEvent:
-		return resources.HandleSQSEvent(e, function.Client), nil
+		return receiver.HandleSQSEvent(e, function.Client), nil
 	case events.DynamoDBEvent:
-		return resources.HandleDynamoDBEvent(e, function.Client), nil
+		return receiver.HandleDynamoDBEvent(e, function.Client), nil
 	default:
 		return "", fmt.Errorf("event unsupported: %T", e)
 	}

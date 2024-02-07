@@ -1,4 +1,4 @@
-package resources
+package receiver
 
 import (
 	"github.com/aws/aws-lambda-go/events"
