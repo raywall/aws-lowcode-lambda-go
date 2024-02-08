@@ -3,6 +3,7 @@ package receiver
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
@@ -129,16 +130,16 @@ func readFromDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 
 	queryInput := &dynamodb.QueryInput{
 		TableName:                 aws.String(conf.Resources.Connector.Properties.TableName),
-		KeyConditionExpression:    &conditions,
+		KeyConditionExpression:    aws.String(conditions),
 		ExpressionAttributeNames:  names,
 		ExpressionAttributeValues: values,
 	}
-
+	log.Println("queryInput:", queryInput) // remover
 	result, err := svc.Query(queryInput)
 	if err != nil {
 		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 500,
-			Message:    fmt.Sprintf("failed input new item: %v", err),
+			Message:    fmt.Sprintf("failed to execute a table query: %v", err),
 			Error:      err,
 		}
 	}
@@ -148,7 +149,7 @@ func readFromDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 	if err != nil {
 		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 500,
-			Error:      fmt.Errorf("failed unmarshal record: %v", err),
+			Error:      fmt.Errorf("failed to deserialize response: %v", err),
 		}
 	}
 
@@ -156,7 +157,7 @@ func readFromDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 	if err != nil {
 		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 500,
-			Error:      fmt.Errorf("failed marshal mapped response: %v", err),
+			Error:      fmt.Errorf("failed to serialize query result: %v", err),
 		}
 	}
 
@@ -181,7 +182,7 @@ func updateOnDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 
 	updateInput := &dynamodb.UpdateItemInput{
 		TableName:                 aws.String(conf.Resources.Connector.Properties.TableName),
-		UpdateExpression:          &updateExpr,
+		UpdateExpression:          aws.String(updateExpr),
 		ExpressionAttributeNames:  names,
 		ExpressionAttributeValues: values,
 		Key:                       keys,
