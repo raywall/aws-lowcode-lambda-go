@@ -2,27 +2,34 @@ TemplateFormatVersion: 2024-01-31
 Description: config sample of lowcode-lambda with go
 
 Resources:
-  Request:
-    AllowedMethods:
-    - GET
-    - POST
-    - PUT
-    - DELETE
+  Receiver:
+    ObjectPathSchema: "/opt/receiver.schema.avsc"
+    ResourceType: ApiGateway
+    Properties:
+      AllowedMethods:
+        - GET
+        - POST
+        - PUT
+        # - DELETE
+      AllowedPath:
+        GET: "/{UserID}"
+        POST: "/"
+        PUT: "/{UserID}"
+        # DELETE: "/{UserID}"
 
-  Database:
-    TableName: UserTable
-    Keys:
-      UserID:
-        Operator: "="
-      # EmailAddress:
-      #   Operator: "="
-    Filter: "#age > :age"
-    FilterValues:
-      age: "5"
-    ProjectionCols:
-    - UserID
-    - EmailAddress
-    - FirstName
-  
-  Response:
-    DataStruct: '[{"username": "", "age": ""}]'
+  Connector:
+    ObjectPathSchema: "/opt/connector.schema.avsc"
+    ResourceType: DynamoDB
+    Properties:
+      TableName: UserTable
+      Keys:
+        UserID: EQ
+        # EmailAddress: EQ
+      Filter:
+        - "#Status = :Status"
+      FilterValues:
+        Status: true
+      OutputColumns:
+        - UserID
+        - EmailAddress
+        - FirstName

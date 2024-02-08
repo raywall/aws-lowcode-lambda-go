@@ -37,7 +37,7 @@ Resources:
       Environment:
         Variables:
           DYNAMO_ENDPOINT: http://dynamodb:8000
-          CONFIG_SAMPLE: /opt/sample.yaml
+          CONFIG_SAMPLE: /opt/config.yaml
           AWS_REGION: us-east-1
       Layers:
         - !Ref ConfigLayer

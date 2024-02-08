@@ -6,14 +6,11 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/raywall/aws-lowcode-lambda-go/config"
 )
 
 // Conf refers to the lambda function's configuration, containing all the necessary information
 // about the request, database, and response parameters that the client uses to orchestrate requests.
-var conf = &config.Global
+// var conf = &config.Global
 
 func SerializeLocalRequest(src map[string]interface{}, dest interface{}) error {
 	if src == nil || dest == nil {
@@ -61,43 +58,43 @@ func MarshalAttributeNames(raw map[string]interface{}, separator string) (map[st
 	return data, nil
 }
 
-func MarshalKeyAttributeNames(raw map[string]interface{}, separator string) (map[string]*string, error) {
-	data := make(map[string]*string)
-	for key := range raw {
-		if _, ok := conf.Resources.Database.Keys[key]; ok {
-			data[fmt.Sprintf("%s%s", separator, key)] = aws.String(key)
-		}
-	}
+// func MarshalKeyAttributeNames(raw map[string]interface{}, separator string) (map[string]*string, error) {
+// 	data := make(map[string]*string)
+// 	for key := range raw {
+// 		if _, ok := conf.Resources.Database.Keys[key]; ok {
+// 			data[fmt.Sprintf("%s%s", separator, key)] = aws.String(key)
+// 		}
+// 	}
 
-	return data, nil
-}
+// 	return data, nil
+// }
 
-func MarshalAttributeValues(raw map[string]interface{}, separator string) (map[string]*dynamodb.AttributeValue, error) {
-	data := make(map[string]interface{})
-	for key, value := range raw {
-		data[fmt.Sprintf("%s%s", separator, key)] = value
-	}
+// func MarshalAttributeValues(raw map[string]interface{}, separator string) (map[string]*dynamodb.AttributeValue, error) {
+// 	data := make(map[string]interface{})
+// 	for key, value := range raw {
+// 		data[fmt.Sprintf("%s%s", separator, key)] = value
+// 	}
 
-	result, err := dynamodbattribute.MarshalMap(data)
-	if err != nil {
-		return nil, err
-	}
+// 	result, err := dynamodbattribute.MarshalMap(data)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return result, nil
-}
+// 	return result, nil
+// }
 
-func MarshalKeyAttributeValues(raw map[string]interface{}, separator string) (map[string]*dynamodb.AttributeValue, error) {
-	data := make(map[string]interface{})
-	for key, value := range raw {
-		if _, ok := conf.Resources.Database.Keys[key]; ok {
-			data[fmt.Sprintf("%s%s", separator, key)] = value
-		}
-	}
+// func MarshalKeyAttributeValues(raw map[string]interface{}, separator string) (map[string]*dynamodb.AttributeValue, error) {
+// 	data := make(map[string]interface{})
+// 	for key, value := range raw {
+// 		if _, ok := conf.Resources.Database.Keys[key]; ok {
+// 			data[fmt.Sprintf("%s%s", separator, key)] = value
+// 		}
+// 	}
 
-	result, err := dynamodbattribute.MarshalMap(data)
-	if err != nil {
-		return nil, err
-	}
+// 	result, err := dynamodbattribute.MarshalMap(data)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return result, nil
-}
+// 	return result, nil
+// }

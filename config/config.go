@@ -2,11 +2,8 @@ package config
 
 import (
 	"errors"
-	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
 	dynamo "github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"gopkg.in/yaml.v2"
 )
 
@@ -16,11 +13,11 @@ var Global = Config{}
 type (
 	// Config is a struct representing the Configuration file, containing all the necessary information about
 	// the request, database, and response parameters that the client uses to orchestrate requests
-	Config struct {
-		TemplateFormatVersion string    `yaml:"TemplateFormatVersion,omitempty"`
-		Description           string    `yaml:"Description,omitempty"`
-		Resources             Resources `yaml:"Resources"`
-	}
+	// Config struct {
+	// 	TemplateFormatVersion string     `yaml:"TemplateFormatVersion,omitempty"`
+	// 	Description           string     `yaml:"Description,omitempty"`
+	// 	Resources             Resourcess `yaml:"Resources"`
+	// }
 
 	// ComposedData is a struct representing an AttributeValue. You will use this struct to inform
 	// parameters of an key.
@@ -85,7 +82,7 @@ type (
 
 	// Resources is a struct used as an attribute of the Config to group information about request,
 	// database, and response configurations.
-	Resources struct {
+	Resourcess struct {
 		Request  Request  `yaml:"Request"`
 		Database Database `yaml:"Database,omitempty"`
 		Response Response `yaml:"Response,omitempty"`
@@ -140,51 +137,51 @@ func (config *Config) Set() error {
 
 // KeyCondition is a function used to prepare data to be used as expressionNames, expressionValues, primary key
 // information, and conditions to orchestrate actions in the DynamoDB table.
-func (config *Config) KeyCondition() (*KeyCondition, error) {
-	var (
-		condition string
-		names     = map[string]*string{}
-		values    = map[string]*dynamo.AttributeValue{}
-		keys      = map[string]string{}
-	)
+// func (config *Config) KeyCondition() (*KeyCondition, error) {
+// 	var (
+// 		condition string
+// 		names     = map[string]*string{}
+// 		values    = map[string]*dynamo.AttributeValue{}
+// 		keys      = map[string]string{}
+// 	)
 
-	for key, value := range config.Resources.Database.Keys {
-		if condition != "" {
-			condition += " AND "
-		}
+// 	for key, value := range config.Resources.Database.Keys {
+// 		if condition != "" {
+// 			condition += " AND "
+// 		}
 
-		condition += fmt.Sprintf("#%s %s :%s", key, value.Operator, key)
+// 		condition += fmt.Sprintf("#%s %s :%s", key, value.Operator, key)
 
-		names[fmt.Sprintf("#%s", key)] = aws.String(key)
-		values[fmt.Sprintf(":%s", key)] = &dynamo.AttributeValue{
-			S: aws.String(value.Data),
-		}
+// 		names[fmt.Sprintf("#%s", key)] = aws.String(key)
+// 		values[fmt.Sprintf(":%s", key)] = &dynamo.AttributeValue{
+// 			S: aws.String(value.Data),
+// 		}
 
-		if _, ok := config.Resources.Database.Keys[key]; ok {
-			keys[key] = value.Data
-		}
-	}
+// 		if _, ok := config.Resources.Database.Keys[key]; ok {
+// 			keys[key] = value.Data
+// 		}
+// 	}
 
-	primaryKeys, err := dynamodbattribute.MarshalMap(keys)
-	if err != nil {
-		return nil, fmt.Errorf("failed unmarshal primary keys: %s", err)
-	}
+// 	primaryKeys, err := dynamodbattribute.MarshalMap(keys)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed unmarshal primary keys: %s", err)
+// 	}
 
-	return &KeyCondition{
-		ExpressionAttributeNames:  names,
-		ExpressionAttributeValues: values,
-		Condition:                 condition,
-		PrimaryKeys:               primaryKeys,
-	}, nil
-}
+// 	return &KeyCondition{
+// 		ExpressionAttributeNames:  names,
+// 		ExpressionAttributeValues: values,
+// 		Condition:                 condition,
+// 		PrimaryKeys:               primaryKeys,
+// 	}, nil
+// }
 
 // IsMethodAllowed checks if the received method is allowed to be processed by the client.
-func (config *Config) IsMethodAllowed() bool {
-	for _, item := range config.Resources.Request.AllowedMethods {
-		if item == config.Resources.Request.HTTPMethod {
-			return true
-		}
-	}
+// func (config *Config) IsMethodAllowed() bool {
+// 	for _, item := range config.Resources.Request.AllowedMethods {
+// 		if item == config.Resources.Request.HTTPMethod {
+// 			return true
+// 		}
+// 	}
 
-	return false
-}
+// 	return false
+// }
