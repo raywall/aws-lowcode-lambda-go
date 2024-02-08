@@ -124,9 +124,32 @@ func saveToDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 // Para usar esta função, você também precisa especificar o Nome da Tabela do DynamoDB e as chaves que
 // compõem a chave primária da tabela.
 func readFromDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
-	names, _ := conf.Resources.Connector.GetKeyAttributeNames(data)
-	values, _ := conf.Resources.Connector.GetKeyAttributeValues(data)
-	conditions, _ := conf.Resources.Connector.GetKeyConditions(data)
+	names, err := conf.Resources.Connector.GetKeyAttributeNames(data)
+	if err != nil {
+		return &lowcodeattribute.ExecutionResponse{
+			StatusCode: 500,
+			Message:    fmt.Sprintf("failed getting attribute names: %v", err),
+			Error:      err,
+		}
+	}
+
+	values, err := conf.Resources.Connector.GetKeyAttributeValues(data)
+	if err != nil {
+		return &lowcodeattribute.ExecutionResponse{
+			StatusCode: 500,
+			Message:    fmt.Sprintf("failed getting attribute values: %v", err),
+			Error:      err,
+		}
+	}
+
+	conditions, err := conf.Resources.Connector.GetKeyConditions(data)
+	if err != nil {
+		return &lowcodeattribute.ExecutionResponse{
+			StatusCode: 500,
+			Message:    fmt.Sprintf("failed to execute a table query: %v", err),
+			Error:      err,
+		}
+	}
 
 	queryInput := &dynamodb.QueryInput{
 		TableName:                 aws.String(conf.Resources.Connector.Properties.TableName),
