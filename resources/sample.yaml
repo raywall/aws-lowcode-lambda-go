@@ -1,0 +1,35 @@
+TemplateFormatVersion: 2024-01-31
+Description: config sample of lowcode-lambda with go
+
+Resources:
+  Receiver:
+    ObjectPathSchema: "/opt/receiver.schema.avsc"
+    ResourceType: ApiGateway
+    Properties:
+      AllowedMethods:
+        - GET
+        - POST
+        - PUT
+        # - DELETE
+      AllowedPath:
+        GET: "/{UserID}"
+        POST: "/"
+        PUT: "/{UserID}"
+        # DELETE: "/{UserID}"
+
+  Connector:
+    ObjectPathSchema: "/opt/connector.schema.avsc"
+    ResourceType: DynamoDB
+    Properties:
+      TableName: UserTable
+      Keys:
+        UserID: EQ
+        # EmailAddress: EQ
+      Filter:
+        - "#Status = :Status"
+      FilterValues:
+        Status: true
+      OutputColumns:
+        - UserID
+        - EmailAddress
+        - FirstName

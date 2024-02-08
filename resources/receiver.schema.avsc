@@ -1,0 +1,27 @@
+{
+    "type": "record",
+    "name": "User",
+    "fields": [
+        {
+            "name": "UserID",
+            "type": "string"
+        },
+        {
+            "name": "EmailAddress",
+            "type": "string"
+        },
+        {
+            "name": "FirstName",
+            "type": "string"
+        },
+        {
+            "name": "LastName",
+            "type": "string"
+        },
+        {
+            "name": "Status",
+            "type": "boolean",
+            "default": false
+        }
+    ]
+}
