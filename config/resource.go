@@ -3,6 +3,13 @@ package config
 import "github.com/aws/aws-sdk-go/service/dynamodb"
 
 type (
+	ActionRequested string
+
+	Settings struct {
+		Config *Config
+		Client *dynamodb.DynamoDB
+	}
+
 	Config struct {
 		TemplateFormatVersion string    `yaml:"TemplateFormatVersion"`
 		Description           string    `yaml:"Description"`
@@ -43,4 +50,11 @@ type (
 		KeyCondition       string
 		UpdateExpression   string
 	}
+)
+
+const (
+	Create ActionRequested = "POST"
+	Read   ActionRequested = "GET"
+	Update ActionRequested = "PUT"
+	Delete ActionRequested = "DELETE"
 )

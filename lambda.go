@@ -15,13 +15,15 @@ import (
 	"github.com/raywall/aws-lowcode-lambda-go/receiver"
 )
 
-type LowcodeFunction struct {
-	Settings config.Config
-	Client   *dynamodb.DynamoDB
+type Lowcode interface {
+	NewWithConfig(filePath string) error
+	HandleRequest(ctx context.Context, evt interface{}) (interface{}, error)
 }
 
-func (function *LowcodeFunction) NewWithConfig(filePath string) error {
-	conf := &config.Global
+type Function config.Settings
+
+func (function *Function) NewWithConfig(filePath string) error {
+	function.Config = &config.Config{}
 
 	awsConfig := aws.Config{Region: aws.String(os.Getenv("AWS_REGION"))}
 	awsConfig.Endpoint = aws.String(os.Getenv("DYNAMO_ENDPOINT"))
@@ -36,7 +38,7 @@ func (function *LowcodeFunction) NewWithConfig(filePath string) error {
 	}
 
 	// load configuration
-	err = conf.Load(data)
+	err = function.Config.Load(data)
 	if err != nil {
 		log.Fatalf("failed loading settings: %v", err)
 	}
@@ -44,7 +46,7 @@ func (function *LowcodeFunction) NewWithConfig(filePath string) error {
 	return nil
 }
 
-func (function *LowcodeFunction) HandleRequest(ctx context.Context, evt interface{}) (interface{}, error) {
+func (function *Function) HandleRequest(ctx context.Context, evt interface{}) (interface{}, error) {
 	var event interface{} = evt
 
 	log.Printf("received type: %T", event)
@@ -55,15 +57,24 @@ func (function *LowcodeFunction) HandleRequest(ctx context.Context, evt interfac
 		event = obj
 	}
 
+	settings := receiver.Settings{
+		Config: function.Config,
+		Client: function.Client,
+	}
+
 	switch e := event.(type) {
 	case events.APIGatewayProxyRequest:
-		return receiver.HandleAPIGatewayEvent(e, function.Client).ToGatewayResponse()
+		var api receiver.ApiGateway = &settings
+		return api.HandleAPIGatewayEvent(e).ToGatewayResponse()
 	case events.SNSEvent:
-		return receiver.HandleSNSEvent(e, function.Client), nil
+		var sns receiver.SNS = &settings
+		return sns.HandleSNSEvent(e), nil
 	case events.SQSEvent:
-		return receiver.HandleSQSEvent(e, function.Client), nil
+		var sqs receiver.SQS = &settings
+		return sqs.HandleSQSEvent(e), nil
 	case events.DynamoDBEvent:
-		return receiver.HandleDynamoDBEvent(e, function.Client), nil
+		var dynamo receiver.DynamoDB = &settings
+		return dynamo.HandleDynamoDBEvent(e), nil
 	default:
 		return "", fmt.Errorf("event unsupported: %T", e)
 	}

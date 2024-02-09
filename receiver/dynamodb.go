@@ -2,9 +2,12 @@ package receiver
 
 import (
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-func HandleDynamoDBEvent(event events.DynamoDBEvent, client *dynamodb.DynamoDB) string {
+type DynamoDB interface {
+	HandleDynamoDBEvent(event events.DynamoDBEvent) string
+}
+
+func (s *Settings) HandleDynamoDBEvent(event events.DynamoDBEvent) string {
 	return "DynamoDB event received"
 }

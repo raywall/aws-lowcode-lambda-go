@@ -2,9 +2,12 @@ package receiver
 
 import (
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-func HandleSNSEvent(event events.SNSEvent, client *dynamodb.DynamoDB) string {
+type SNS interface {
+	HandleSNSEvent(event events.SNSEvent) string
+}
+
+func (s *Settings) HandleSNSEvent(event events.SNSEvent) string {
 	return "SNS event received"
 }

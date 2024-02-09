@@ -2,9 +2,12 @@ package receiver
 
 import (
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-func HandleSQSEvent(event events.SQSEvent, client *dynamodb.DynamoDB) string {
+type SQS interface {
+	HandleSQSEvent(event events.SQSEvent) string
+}
+
+func (s *Settings) HandleSQSEvent(event events.SQSEvent) string {
 	return "SQS event received"
 }

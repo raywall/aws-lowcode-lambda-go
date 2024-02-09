@@ -13,21 +13,9 @@ import (
 	"github.com/raywall/aws-lowcode-lambda-go/lowcodeattribute"
 )
 
-type ActionRequested string
-
-// Conf refers to the lambda function's configuration, containing all the necessary information
-// about the request, database, and response parameters that the client uses to orchestrate requests.
-var (
-	conf = &config.Global
-	svc  *dynamodb.DynamoDB
-)
-
-const (
-	Create ActionRequested = "POST"
-	Read   ActionRequested = "GET"
-	Update ActionRequested = "PUT"
-	Delete ActionRequested = "DELETE"
-)
+type ApiGateway interface {
+	HandleAPIGatewayEvent(event events.APIGatewayProxyRequest) *lowcodeattribute.ExecutionResponse
+}
 
 func message(status int, message string, err error) *lowcodeattribute.ExecutionResponse {
 	response := lowcodeattribute.ExecutionResponse{
@@ -53,29 +41,27 @@ func message(status int, message string, err error) *lowcodeattribute.ExecutionR
 // da função serão permitidos.
 //
 // Caso o método enviado não seja suportado pela função ainda, ela responderá com um código 400
-func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest, client *dynamodb.DynamoDB) *lowcodeattribute.ExecutionResponse {
-	svc = client
-
+func (s *Settings) HandleAPIGatewayEvent(event events.APIGatewayProxyRequest) *lowcodeattribute.ExecutionResponse {
 	var data map[string]interface{}
 	err := json.Unmarshal([]byte(event.Body), &data)
 	if err != nil {
 		return message(500, "", err)
 	}
 
-	jsonMap, err := conf.Resources.Receiver.EncodeJSON(data)
+	jsonMap, err := s.Config.Resources.Receiver.EncodeJSON(data)
 	if err != nil {
 		return message(500, "", err)
 	}
 
-	switch ActionRequested(event.HTTPMethod) {
-	case Create:
-		return saveToDynamoDB(jsonMap)
-	case Read:
-		return readFromDynamoDB(jsonMap)
-	case Update:
-		return updateOnDynamoDB(jsonMap)
-	case Delete:
-		return deleteOnDynamoDB(jsonMap)
+	switch config.ActionRequested(event.HTTPMethod) {
+	case config.Create:
+		return s.saveToDynamoDB(jsonMap)
+	case config.Read:
+		return s.readFromDynamoDB(jsonMap)
+	case config.Update:
+		return s.updateOnDynamoDB(jsonMap)
+	case config.Delete:
+		return s.deleteOnDynamoDB(jsonMap)
 	default:
 		return &lowcodeattribute.ExecutionResponse{
 			StatusCode: 404,
@@ -96,7 +82,7 @@ func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest, client *dynamodb
 //
 // Para usar esta função, você também precisa especificar o Nome da Tabela do DynamoDB e as chaves que
 // compõem a chave primária da tabela.
-func saveToDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
+func (s *Settings) saveToDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 	item, err := dynamodbattribute.MarshalMap(data)
 	if err != nil {
 		return message(500, "failed marshal data", err)
@@ -104,10 +90,10 @@ func saveToDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 
 	input := &dynamodb.PutItemInput{
 		Item:      item,
-		TableName: aws.String(conf.Resources.Connector.Properties.TableName),
+		TableName: aws.String(s.Config.Resources.Connector.Properties.TableName),
 	}
 
-	_, err = svc.PutItem(input)
+	_, err = s.Client.PutItem(input)
 	if err != nil {
 		return message(500, "failed input new item", err)
 	}
@@ -126,31 +112,31 @@ func saveToDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 //
 // Para usar esta função, você também precisa especificar o Nome da Tabela do DynamoDB e as chaves que
 // compõem a chave primária da tabela.
-func readFromDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
-	names, err := conf.Resources.Connector.GetKeyAttributeNames(data)
+func (s *Settings) readFromDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
+	names, err := s.Config.Resources.Connector.GetKeyAttributeNames(data)
 	if err != nil {
 		return message(500, "failed getting attribute names", err)
 	}
 
-	values, err := conf.Resources.Connector.GetKeyAttributeValues(data)
+	values, err := s.Config.Resources.Connector.GetKeyAttributeValues(data)
 	if err != nil {
 		return message(500, "failed getting attribute values", err)
 	}
 
-	conditions, err := conf.Resources.Connector.GetKeyConditions(data)
+	conditions, err := s.Config.Resources.Connector.GetKeyConditions(data)
 	if err != nil {
 		return message(500, "failed to execute a table query", err)
 	}
 
 	queryInput := &dynamodb.QueryInput{
-		TableName:                 aws.String(conf.Resources.Connector.Properties.TableName),
+		TableName:                 aws.String(s.Config.Resources.Connector.Properties.TableName),
 		KeyConditionExpression:    aws.String(conditions),
 		ExpressionAttributeNames:  names,
 		ExpressionAttributeValues: values,
 	}
 
 	log.Println("queryInput:", queryInput) // remover
-	result, err := svc.Query(queryInput)
+	result, err := s.Client.Query(queryInput)
 	if err != nil {
 		return message(500, "failed to execute a table query", err)
 	}
@@ -176,21 +162,21 @@ func readFromDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 //
 // Os atributos do ítem que serão modificados, juntamente com os atributos da chave primária precisam ser
 // enviados no corpo da requisição para que a atualização seja efetuada.
-func updateOnDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
-	keys, _ := conf.Resources.Connector.GetPrimaryKeyAttributeValue(data)
-	names, _ := conf.Resources.Connector.GetAttributeNames(data)
-	values, _ := conf.Resources.Connector.GetAttributeValues(data)
-	updateExpr, _ := conf.Resources.Connector.GetUpdateExpression(data)
+func (s *Settings) updateOnDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
+	keys, _ := s.Config.Resources.Connector.GetPrimaryKeyAttributeValue(data)
+	names, _ := s.Config.Resources.Connector.GetAttributeNames(data)
+	values, _ := s.Config.Resources.Connector.GetAttributeValues(data)
+	updateExpr, _ := s.Config.Resources.Connector.GetUpdateExpression(data)
 
 	updateInput := &dynamodb.UpdateItemInput{
-		TableName:                 aws.String(conf.Resources.Connector.Properties.TableName),
+		TableName:                 aws.String(s.Config.Resources.Connector.Properties.TableName),
 		UpdateExpression:          aws.String(updateExpr),
 		ExpressionAttributeNames:  names,
 		ExpressionAttributeValues: values,
 		Key:                       keys,
 	}
 
-	_, err := svc.UpdateItem(updateInput)
+	_, err := s.Client.UpdateItem(updateInput)
 	if err != nil {
 		return message(500, "", err)
 	}
@@ -206,18 +192,18 @@ func updateOnDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 // you need to send the values of the keys in your request to properly remove the item
 //
 // To use this function, you need to specify the 'TableName' and 'Keys' in your configuration file.
-func deleteOnDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
-	keys, err := conf.Resources.Connector.GetPrimaryKeyAttributeValue(data.(map[string]interface{}))
+func (s *Settings) deleteOnDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
+	keys, err := s.Config.Resources.Connector.GetPrimaryKeyAttributeValue(data.(map[string]interface{}))
 	if err != nil {
 		return message(500, "failed to get primary key", err)
 	}
 
 	deleteInput := dynamodb.DeleteItemInput{
-		TableName: aws.String(conf.Resources.Connector.Properties.TableName),
+		TableName: aws.String(s.Config.Resources.Connector.Properties.TableName),
 		Key:       keys,
 	}
 
-	_, err = svc.DeleteItem(&deleteInput)
+	_, err = s.Client.DeleteItem(&deleteInput)
 	if err != nil {
 		return message(500, "failed to remove table item", err)
 	}
