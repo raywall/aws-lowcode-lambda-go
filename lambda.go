@@ -18,7 +18,6 @@ import (
 type LowcodeFunction struct {
 	Settings config.Config
 	Client   *dynamodb.DynamoDB
-	Debug    bool
 }
 
 func (function *LowcodeFunction) NewWithConfig(filePath string) error {
@@ -29,7 +28,6 @@ func (function *LowcodeFunction) NewWithConfig(filePath string) error {
 
 	sess, _ := session.NewSession(&awsConfig)
 	function.Client = dynamodb.New(sess)
-	function.Debug = false
 
 	// read a configuration file content
 	data, err := os.ReadFile(filePath)

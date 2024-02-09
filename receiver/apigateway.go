@@ -17,8 +17,10 @@ type ActionRequested string
 
 // Conf refers to the lambda function's configuration, containing all the necessary information
 // about the request, database, and response parameters that the client uses to orchestrate requests.
-var conf = &config.Global
-var svc *dynamodb.DynamoDB
+var (
+	conf = &config.Global
+	svc  *dynamodb.DynamoDB
+)
 
 const (
 	Create ActionRequested = "POST"
@@ -26,6 +28,23 @@ const (
 	Update ActionRequested = "PUT"
 	Delete ActionRequested = "DELETE"
 )
+
+func message(status int, message string, err error) *lowcodeattribute.ExecutionResponse {
+	response := lowcodeattribute.ExecutionResponse{
+		StatusCode: status,
+	}
+
+	if message != "" {
+		response.Message = message
+	}
+
+	if err != nil {
+		response.Message = fmt.Sprintf("%s: %v", message, err)
+		response.Error = err
+	}
+
+	return &response
+}
 
 // handleAPIGatewayEvent é uma função interna que valida a requisição recebida do gateway e
 // direciona a ação solicitada de acordo com o método http recebido.
@@ -40,18 +59,12 @@ func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest, client *dynamodb
 	var data map[string]interface{}
 	err := json.Unmarshal([]byte(event.Body), &data)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Error:      err,
-		}
+		return message(500, "", err)
 	}
 
 	jsonMap, err := conf.Resources.Receiver.EncodeJSON(data)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Error:      err,
-		}
+		return message(500, "", err)
 	}
 
 	switch ActionRequested(event.HTTPMethod) {
@@ -86,11 +99,7 @@ func HandleAPIGatewayEvent(event events.APIGatewayProxyRequest, client *dynamodb
 func saveToDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 	item, err := dynamodbattribute.MarshalMap(data)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Message:    fmt.Sprintf("failed marshal data: %v", err),
-			Error:      err,
-		}
+		return message(500, "failed marshal data", err)
 	}
 
 	input := &dynamodb.PutItemInput{
@@ -100,16 +109,10 @@ func saveToDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 
 	_, err = svc.PutItem(input)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Message:    fmt.Sprintf("failed input new item: %v", err),
-			Error:      err,
-		}
+		return message(500, "failed input new item", err)
 	}
 
-	return &lowcodeattribute.ExecutionResponse{
-		StatusCode: 201,
-	}
+	return message(201, "", nil)
 }
 
 // readFromDynamoDB é uma função interna que possibilita realizar consultas em uma tabela do DynamoDB
@@ -126,29 +129,17 @@ func saveToDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 func readFromDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 	names, err := conf.Resources.Connector.GetKeyAttributeNames(data)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Message:    fmt.Sprintf("failed getting attribute names: %v", err),
-			Error:      err,
-		}
+		return message(500, "failed getting attribute names", err)
 	}
 
 	values, err := conf.Resources.Connector.GetKeyAttributeValues(data)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Message:    fmt.Sprintf("failed getting attribute values: %v", err),
-			Error:      err,
-		}
+		return message(500, "failed getting attribute values", err)
 	}
 
 	conditions, err := conf.Resources.Connector.GetKeyConditions(data)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Message:    fmt.Sprintf("failed to execute a table query: %v", err),
-			Error:      err,
-		}
+		return message(500, "failed to execute a table query", err)
 	}
 
 	queryInput := &dynamodb.QueryInput{
@@ -157,37 +148,25 @@ func readFromDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 		ExpressionAttributeNames:  names,
 		ExpressionAttributeValues: values,
 	}
+
 	log.Println("queryInput:", queryInput) // remover
 	result, err := svc.Query(queryInput)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Message:    fmt.Sprintf("failed to execute a table query: %v", err),
-			Error:      err,
-		}
+		return message(500, "failed to execute a table query", err)
 	}
 
 	var jsonMap []map[string]interface{}
 	err = dynamodbattribute.UnmarshalListOfMaps(result.Items, &jsonMap)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Error:      fmt.Errorf("failed to deserialize response: %v", err),
-		}
+		return message(500, "failed to deserialize response", err)
 	}
 
 	jsonResponse, err := json.Marshal(jsonMap)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Error:      fmt.Errorf("failed to serialize query result: %v", err),
-		}
+		return message(500, "failed to serialize query result", err)
 	}
 
-	return &lowcodeattribute.ExecutionResponse{
-		StatusCode: 200,
-		Message:    string(jsonResponse),
-	}
+	return message(200, string(jsonResponse), nil)
 }
 
 // updateOnDynamoDB é uma função interna responsável por atualizar, remover ou adicionar os atributos
@@ -213,15 +192,10 @@ func updateOnDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 
 	_, err := svc.UpdateItem(updateInput)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Error:      err,
-		}
+		return message(500, "", err)
 	}
 
-	return &lowcodeattribute.ExecutionResponse{
-		StatusCode: 200,
-	}
+	return message(200, "", nil)
 }
 
 // delete is an internal function responsible for remove an item of the DynamoDB table using the settings
@@ -235,10 +209,7 @@ func updateOnDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 func deleteOnDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 	keys, err := conf.Resources.Connector.GetPrimaryKeyAttributeValue(data.(map[string]interface{}))
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Error:      fmt.Errorf("failed to get primary key: %v", err),
-		}
+		return message(500, "failed to get primary key", err)
 	}
 
 	deleteInput := dynamodb.DeleteItemInput{
@@ -248,13 +219,8 @@ func deleteOnDynamoDB(data interface{}) *lowcodeattribute.ExecutionResponse {
 
 	_, err = svc.DeleteItem(&deleteInput)
 	if err != nil {
-		return &lowcodeattribute.ExecutionResponse{
-			StatusCode: 500,
-			Error:      fmt.Errorf("failed to remove table item: %v", err),
-		}
+		return message(500, "failed to remove table item", err)
 	}
 
-	return &lowcodeattribute.ExecutionResponse{
-		StatusCode: 200,
-	}
+	return message(200, "", nil)
 }
