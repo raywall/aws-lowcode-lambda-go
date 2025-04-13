@@ -3,14 +3,18 @@
 		"Pattern": "/aws-lowcode-lambda-go",
 		"StripPrefix": "/aws-lowcode-lambda-go",
 		"Include": [
-			"/src/github.com/raywall/aws-lowcode-lambda-go/config", 
-			"/src/github.com/raywall/aws-lowcode-lambda-go/server/clients/api", 
+			"/src/github.com/raywall/aws-lowcode-lambda-go/config",
+			"/src/github.com/raywall/aws-lowcode-lambda-go/server/clients/api",
 			"/src/github.com/raywall/aws-lowcode-lambda-go/server/clients/dynamodb"
 		],
 		"Exclude": [
-			"/src/github.com/raywall/aws-lowcode-lambda-go/sam" 
+			"/src/github.com/raywall/aws-lowcode-lambda-go/sam",
+			"/src/github.com/raywall/aws-lowcode-lambda-go/.aws-sam",
+			"/src/github.com/raywall/aws-lowcode-lambda-go/*.sh"
 		],
-		"IgnoredSuffixes": ["iface"]
+		"IgnoredSuffixes": [
+			"iface"
+		]
 	},
 	"Github": {
 		"Tag": "main",

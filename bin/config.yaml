@@ -1,0 +1,41 @@
+TemplateFormatVersion: 2025-04-19
+Transform: LC::Lambda
+
+Metadata:
+  Name: user-service
+  Version: 1.0.0
+
+Input:
+  Source: apiGatewayProxy
+  Schema:
+    PathParameters:
+      Type: object
+      Properties:
+        username:
+          Type: string
+          MinLength: 3
+      Required: ["username"]
+
+Steps:
+  # - id: validateInput
+  #   type: validate
+  #   config:
+  #     data: ${input.pathParameters}
+  #     schemaRef: "#/input/schema/PathParameters"
+  #   onError:
+  #     action: return
+  #     response:
+  #       statusCode: 400
+  #       body:
+  #         error: "Parâmetro username ausente ou inválido"
+  #         details: "O path deve conter /users/{username} com 3+ caracteres"
+
+  - id: processRequest
+    type: return
+    config:
+      statusCode: 200
+      headers:
+        Content-Type: "application/json"
+      body:
+        message: "Bem-vindo, ${input.pathParameters.username}!"
+        requestDetails: ${input.body}

@@ -1,53 +1,31 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: AWS SAM template with an API and lowcode lambda function
+Description: Template SIMPLIFICADO para testes locais sem auth
 
 Resources:
-  ApiGateway:
-    Type: AWS::Serverless::Api
+  MockLambdaFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      StageName: dev
-      DefinitionUri: sam/swagger.yaml
-      MethodSettings:
-        - ResourcePath: /{proxy+}
-          HttpMethod: POST
-  
-  ConfigLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: lowcodeLayer
-      ContentUri: ./resources
-      CompatibleRuntimes:
-        - go1.x
-      RetentionPolicy: Retain
-
-
-  LowcodeFunction:
-    Type: "AWS::Serverless::Function"
-    Properties:
-      CodeUri: ./
-      Handler: main
-      Description: A serverless locode function integrated with a local DynamoDB
-      FunctionName: lowcode-function
-      Architectures:
-        - x86_64
-      MemorySize: 128
-      Runtime: go1.x
-      Timeout: 300
+      CodeUri: ./bin/
+      Handler: bootstrap
+      Runtime: provided.al2
+      MemorySize: 256
+      Timeout: 30
       Environment:
         Variables:
-          DYNAMO_ENDPOINT: http://dynamodb:8000
-          CONFIG_SAMPLE: /opt/config.yaml
-          AWS_REGION: us-east-1
-      Layers:
-        - !Ref ConfigLayer
+          LOG_LEVEL: "DEBUG"
+          CONFIG_SOURCE: "./config.yaml" # Arquivo local
+          APP_ENV: "local"
       Events:
-        ProxyEndpoint:
+        UserApi:
           Type: Api
           Properties:
-            Path: /
-            Method: ANY
-            RestApiId: 
-              Ref: ApiGateway
-            Auth:
-              Authorizer: NONE
+            Path: /users/{username} # Note o nome do parâmetro
+            Method: POST
+
+# Configurações do SAM Local
+Metadata:
+  SamLocal:
+    MockLambdaFunction:
+      SkipPullImage: true # Não precisa baixar imagem Docker
+      DockerNetwork: host # Acessa serviços locais
