@@ -1,6 +1,6 @@
 package plugin
 
-import "github.com/raywall/aws-lowcode-lambda-go/pkg/core"
+import "github.com/raywall/aws-lowcode-lambda-go/pkg/core/context"
 
 type Plugin interface {
 	Name() string
@@ -9,7 +9,7 @@ type Plugin interface {
 }
 
 type StepExecutor interface {
-	Execute(config map[string]interface{}, ctx *core.ExecutionContext) error
+	Execute(config map[string]interface{}, ctx *context.ExecutionContext) error
 }
 
 type ResourceHandler interface {

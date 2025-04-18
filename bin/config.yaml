@@ -14,7 +14,8 @@ Input:
         username:
           Type: string
           MinLength: 3
-      Required: ["username"]
+      Required:
+        - username
 
 Steps:
   # - id: validateInput

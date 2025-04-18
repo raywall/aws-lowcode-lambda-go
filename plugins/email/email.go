@@ -1,7 +1,7 @@
 package email
 
 import (
-	"github.com/raywall/aws-lowcode-lambda-go/pkg/core"
+	"github.com/raywall/aws-lowcode-lambda-go/pkg/core/context"
 	"github.com/raywall/aws-lowcode-lambda-go/pkg/plugin"
 )
 
@@ -17,7 +17,7 @@ func (p *EmailPlugin) Register(registry *plugin.Registry) {
 
 type EmailStep struct{}
 
-func (s *EmailStep) Execute(config map[string]interface{}, ctx *core.ExecutionContext) error {
+func (s *EmailStep) Execute(config map[string]interface{}, ctx *context.ExecutionContext) error {
 	// Implementação do envio de email
 	return nil
 }
