@@ -2,11 +2,6 @@ package response
 
 import "github.com/raywall/aws-lowcode-lambda-go/pkg/core/context"
 
-// ResponseInterface define o contrato para todos os tipos de resposta
-// type ResponseInterface interface {
-// 	ToResponseFormat() map[string]interface{}
-// }
-
 type ResponseInterface interface {
 	ToLambdaResponse() interface{}
 }

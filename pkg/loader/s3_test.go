@@ -1,4 +1,4 @@
-package loader
+package loader_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/raywall/aws-lowcode-lambda-go/pkg/loader"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -35,7 +36,7 @@ func TestLambdaConfigS3Loader(t *testing.T) {
 			Body: io.NopCloser(strings.NewReader(string(content))),
 		}, nil)
 
-		loader := &S3Loader{
+		loader := &loader.S3Loader{
 			Path:   fmt.Sprintf("s3://%s/%s", bucket, filename),
 			Client: mockS3Client,
 		}

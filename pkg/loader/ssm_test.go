@@ -1,4 +1,4 @@
-package loader
+package loader_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
+	"github.com/raywall/aws-lowcode-lambda-go/pkg/loader"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -40,7 +41,7 @@ func TestLambdaSSMConfigLoader(t *testing.T) {
 			},
 		}, nil)
 
-		loader := &SSMLoader{
+		loader := &loader.SSMLoader{
 			Path:   parameter,
 			Client: mockSSMClient,
 		}

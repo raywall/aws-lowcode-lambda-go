@@ -1,4 +1,4 @@
-package loader
+package loader_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/raywall/aws-lowcode-lambda-go/pkg/loader"
 	"github.com/raywall/aws-lowcode-lambda-go/pkg/loader/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -43,7 +44,7 @@ func TestLambdaConfigNewLoader(t *testing.T) {
 
 func TestLambdaConfigLoader(t *testing.T) {
 	t.Run("Deve carregar o conteúdo do arquivo de template local template.yaml", func(t *testing.T) {
-		loader := LocalLoader{
+		loader := loader.LocalLoader{
 			Path: fmt.Sprintf("%s/%s", local, filename),
 		}
 		data, err := loader.Load()

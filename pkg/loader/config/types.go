@@ -2,7 +2,7 @@ package config
 
 type (
 	LambdaConfig struct {
-		TemplateFormatVersion string    `yaml:"AWSTemplateFormatVersion"`
+		TemplateFormatVersion string    `yaml:"TemplateFormatVersion"`
 		Transform             string    `yaml:"Transform"`
 		Metadata              Metadata  `yaml:"Metadata"`
 		Input                 Input     `yaml:"Input"`
