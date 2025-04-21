@@ -67,34 +67,6 @@ func ConvertAnyMapToJSON(input interface{}) (string, error) {
 	return string(jsonBytes), nil
 }
 
-func normalizeValue(value interface{}) (interface{}, error) {
-	switch v := value.(type) {
-	case map[interface{}]interface{}:
-		result := make(map[string]interface{})
-		for key, val := range v {
-			strKey := fmt.Sprintf("%v", key)
-			normalizedVal, err := normalizeValue(val)
-			if err != nil {
-				return nil, err
-			}
-			result[strKey] = normalizedVal
-		}
-		return result, nil
-	case []interface{}:
-		var result []interface{}
-		for _, item := range v {
-			normalizedItem, err := normalizeValue(item)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, normalizedItem)
-		}
-		return result, nil
-	default:
-		return v, nil
-	}
-}
-
 // SetNestedValue define um valor em um mapa aninhado usando um path estilo dot-notation.
 // Ex: SetNestedValue(myMap, "user.address.city", "New York")
 func SetNestedValue(data map[string]interface{}, path string, value interface{}) error {
@@ -177,21 +149,6 @@ func GetNestedValue(data interface{}, path string) (interface{}, bool) {
 		}
 	}
 	return current, true
-}
-
-// findFieldByJSONTag busca um campo em uma struct pela sua tag JSON.
-func findFieldByJSONTag(structValue reflect.Value, jsonTag string) reflect.Value {
-	structType := structValue.Type()
-	for i := 0; i < structType.NumField(); i++ {
-		field := structType.Field(i)
-		tag := field.Tag.Get("json")
-		// Considera a tag exata ou a parte antes da vírgula (ex: "name,omitempty")
-		tagParts := strings.Split(tag, ",")
-		if len(tagParts) > 0 && tagParts[0] == jsonTag {
-			return structValue.Field(i)
-		}
-	}
-	return reflect.Value{} // Retorna valor inválido se não encontrado
 }
 
 // ToStringMap converte interface{} (mapa ou struct) para map[string]string.
