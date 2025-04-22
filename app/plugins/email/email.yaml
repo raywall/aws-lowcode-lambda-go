@@ -1,0 +1,15 @@
+# email.yaml
+Resources:
+  SES:
+    Type: email
+    Config:
+      Region: us-east-1
+      From: no-reply@company.com
+
+Steps:
+  - id: sendNotification
+    type: sendEmail
+    config:
+      To: ${user.email}
+      Subject: "Notificação"
+      Body: "Olá ${user.name}"

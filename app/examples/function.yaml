@@ -1,0 +1,191 @@
+TemplateFormatVersion: 2025-04-19
+Transform: LC::Lambda
+
+# Metadados da função
+Metadata:
+  Name: minhaFuncaoExemplo
+  Version: 1.0.0
+  Description: Exemplo de função low-code que chama uma API REST e GraphQL.
+
+# Definição da entrada/recepção de requisições pela função lambda
+Input:
+  # Origem do evento: 'apiGatewayProxy', 'alb', 'sqs' ou 'sns'
+  Source: apiGatewayProxy
+  # (Opcional) Esquema para validação inicial dos dados de entrada (ex: query parameters, path parameters, body)
+  # Poderia usar JSON Schema ou uma definição mais simples
+  Schema:
+    Body:
+      Type: object
+      Properties:
+        userId:
+          Type: string
+        productSku:
+          Type: string
+      Required:
+        - userId
+        - productSku
+
+# Definição dos recursos externos a serem utilizados
+Resources:
+  # Cliente REST para um serviço de autenticação
+  AuthServiceRest:
+    Type: Rest # Tipo do recurso
+    Config:
+      BaseURL: https://sts.company-hostname.com
+      # (Opcional) Headers padrão para todas as chamadas
+      Headers:
+        X-Api-Key: "${env:TOKEN_SERVICE_CLIENT_ID}" # Suporte para variáveis de ambiente
+      # (Opcional) Configurações de timeout, retries, etc.
+      TimeoutSeconds: 5
+
+  # Cliente REST para um serviço de usuários
+  UserServiceRest:
+    Type: Rest
+    Config:
+      BaseURL: https://api.userservice.com/v1
+      TimeoutSeconds: 5
+      # (Opcional) Indica a forma de autorização para a chamada da API
+      Auth:
+        # Referencia o recurso responsável pela autenticação
+        Authorizer: "#/Resources/AuthServiceRest/Token"
+
+  # Cliente GraphQL para um serviço de produtos
+  ProductServiceGraphQL:
+    Type: Graphql
+    Config:
+      Endpoint: https://api.productservice.com/graphql
+      # (Opcional) Headers padrão para todas as chamadas
+      Headers:
+        Authorization: "Bearer ${env:PRODUCT_SERVICE_TOKEN}" # Suporte para Secrets Manager/Parameter Store
+      TimeoutSeconds: 10
+
+# Lógica da função: uma sequência de passos
+Steps:
+  # Passo 1: Validar o corpo da requisição usando o schema definido em 'input.schema.body'
+  - id: validateRequestBody
+    type: validate # Tipo do passo: validação
+    config:
+      # Referencia o dado a ser validado (usando uma sintaxe de acesso ao contexto)
+      data: ${input.body}
+      # Referencia o schema a ser usado para validação
+      schemaRef: "#/input/schema/body" # Aponta para a seção de schema no próprio YAML
+    # (Opcional) O que fazer em caso de falha na validação
+    onError:
+      action: return # Ação a ser tomada: retornar imediatamente
+      response:
+        statusCode: 400
+        body:
+          error: "Corpo da requisição inválido."
+          details: "${step.validateRequestBody.errors}" # Acesso aos detalhes do erro da validação
+
+  - id: requestAccessToken
+    type: authorization # Tipo do passo: autenticação
+    config:
+      resource: AuthServiceRest
+      method: POST
+      path: "/token"
+      body:
+        client_id: "${env:APP_SERVICE_CLIENT_ID}" # Recupera o valor de uma variável de ambiente
+        client_secret: "${ssm:APP_SERVICE_CLIENT_SECRET}" # Recupera o valor de um Secret Manager
+      outputVar: access_token
+
+  # Passo 2: Chamar a API REST de usuários para obter detalhes do usuário
+  - id: getUserDetails
+    type: callApi # Tipo do passo: chamada de API
+    config:
+      resource: userServiceRest # Nome do recurso definido em 'resources'
+      method: GET
+      # Path dinâmico usando dados do input
+      path: "/users/${input.body.userId}"
+      headers:
+        Authorization: "Bearer ${step.requestAccessToken.outputVar}"
+      # (Opcional) Mapeamento de query parameters, se necessário
+      # queryParams:
+      #   includeDetails: "true"
+      # Nome da variável no contexto para armazenar a resposta da API
+      outputVar: "${this.response}"
+
+  # Passo 3: Validar a resposta da API de usuários
+  - id: validateUserResponse
+    type: validate
+    config:
+      data: "${step.getUserDetails.outputVar}" # Valida a saída do passo anterior
+      rules: # Regras de validação inline
+        - field: statusCode # Valida o status code da resposta HTTP
+          assertion: equals
+          value: 200
+        - field: body.status # Valida um campo dentro do corpo da resposta JSON
+          assertion: equals
+          value: "active"
+    onError:
+      action: return
+      response:
+        statusCode: 503 # Service Unavailable (ou outro apropriado)
+        body:
+          error: "Falha ao obter detalhes do usuário ou usuário inativo."
+          details: "${step.getUserDetails.outputVar.body}" # Retorna o corpo da resposta original
+
+  # Passo 4: Chamar a API GraphQL de produtos
+  - id: getProductInfo
+    type: callApi
+    config:
+      resource: productServiceGraphQL # Recurso GraphQL
+      operationType: query # 'query' ou 'mutation'
+      # A query GraphQL. Pode usar variáveis do contexto.
+      query: |
+        query: dataSources(codigoConvenio:$codigoConvenio) {
+          convenio {
+            codigoConvenio
+            nomeConvenio
+          }
+          limiteOperacional {
+            percentualMaximoMargemConsignavel
+          }
+          taxaFunding {
+            dataFunding
+          }
+        }
+      # Variáveis para a query GraphQL, mapeadas do contexto
+      variables:
+        codigoConvenio: "${input.body.userId}"
+      outputVar: "${this.response}"
+
+  # Passo 5: Validar a resposta do GraphQL
+  - id: validateProductResponse
+    type: validate
+    config:
+      data: "${step.getProductInfo.outputVar}"
+      rules:
+        - field: statusCode # Valida o status da comunicação com o GraphQL
+          assertion: equals
+          value: 200
+        - field: body.errors # Verifica se a resposta GraphQL contém erros
+          assertion: notExists
+        - field: body.data.product # Verifica se o produto foi encontrado
+          assertion: exists
+    onError:
+      action: return
+      response:
+        statusCode: 404
+        body:
+          error: "Produto não encontrado ou falha ao consultar serviço de produtos."
+          details: "${step.getProductInfo.outputVar.body.errors}" # Retorna os erros do GraphQL se existirem
+
+  # Passo 6: Formatar e retornar a resposta final de sucesso
+  - id: finalResponse
+    type: return # Tipo do passo: retorno final
+    config:
+      statusCode: 200
+      headers:
+        Content-Type: "application/json"
+      # Corpo da resposta montado usando dados coletados nos passos anteriores
+      body:
+        userInfo:
+          id: "${step.getUserDetails.outputVar.body.id}"
+          name: "${step.getUserDetails.outputVar.body.name}"
+          email: "${step.getUserDetails.outputVar.body.email}"
+        productInfo:
+          sku: "${input.body.productSku}" # Pode usar dados do input original também
+          productName: "${step.getProductInfo.outputVar.body.data.product.name}"
+          currentPrice: "${step.getProductInfo.outputVar.body.data.product.price}"
+          availableStock: "${step.getProductInfo.outputVar.body.data.product.stock}"
