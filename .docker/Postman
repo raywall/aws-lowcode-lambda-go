@@ -1,0 +1,10 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY .docker/package.json package.json
+RUN npm install --force
+
+# COPY . .
+
+CMD ["newman", "run", "sua_colecao.json", "-e", "seu_ambiente.json", "-r", "htmlextra,json"]

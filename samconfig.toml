@@ -1,0 +1,8 @@
+version = 0.1
+[default]
+[default.local_start_api]
+  container_host = "localhost"
+  container_host_interface = "0.0.0.0"
+  port = 3000
+  warm_containers = "EAGER"
+  skip_pull_image = true

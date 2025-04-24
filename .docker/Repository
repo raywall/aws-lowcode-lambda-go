@@ -17,6 +17,12 @@ RUN wget https://go.dev/dl/go1.24.2.linux-amd64.tar.gz && \
     tar -vzxf go1.24.2.linux-amd64.tar.gz && \
     rm -rf go1.24.2.linux-amd64.tar.gz
 
+# Desinstala a versão conflitante (se estiver presente)
+RUN pip3 uninstall -y botocore
+
+# Instala as versões específicas
+RUN pip3 install botocore==1.38.0 awscli==1.39.0 aws-sam-cli
+
 # Define as variáveis de ambiente GOROOT e PATH
 ENV GOROOT=/usr/local/go
 ENV PATH="$GOROOT/bin:${PATH}"
@@ -24,7 +30,7 @@ ENV PATH="$GOROOT/bin:${PATH}"
 # Define a variável de ambiente GO111MODULE para habilitar módulos Go (opcional, mas recomendado)
 ENV GO111MODULE=on
 
-# Define o diretório de trabalho
-WORKDIR /app
+COPY .docker/sam-local.sh /.
+RUN chmod +x /sam-local.sh
 
-CMD ["/bin/bash"]
+CMD ["/bin/bash", "./sam-local.sh"]

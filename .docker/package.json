@@ -1,0 +1,16 @@
+{
+  "name": "postman-runner",
+  "version": "1.0.0",
+  "description": "Runner para coleções Postman",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "newman": "^6.0.0",
+    "newman-reporter-htmlextra": "^1.22.11",
+    "newman-reporter-json": "^1.0.0"
+  }
+}
